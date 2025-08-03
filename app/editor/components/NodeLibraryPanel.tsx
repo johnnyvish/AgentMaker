@@ -14,7 +14,6 @@ const NodeLibraryPanel = () => {
     getActionIntegrations,
     getLogicIntegrations,
     getTemplates,
-    applyTemplate,
   } = useAutomationContext();
 
   const [searchTerm, setSearchTerm] = useState("");

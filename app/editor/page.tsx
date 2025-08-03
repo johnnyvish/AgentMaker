@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, DragEvent } from "react";
+import { useCallback, useEffect, DragEvent, Suspense } from "react";
 import { useThemeToggle } from "../../hooks/useThemeToggle";
 import { getIcon } from "../../hooks/useIcons";
 import { useSearchParams } from "next/navigation";
@@ -492,7 +492,7 @@ function WorkflowEditorContent() {
 
       setNodes((nds: Node[]) => [...nds, newNode]);
     },
-    [screenToFlowPosition, setNodes, setEdges]
+    [screenToFlowPosition, setNodes, setEdges, nodes]
   );
 
   // ============================================
@@ -583,7 +583,9 @@ export default function App() {
 
   return (
     <ReactFlowProvider>
-      <WorkflowEditor />
+      <Suspense fallback={<div>Loading...</div>}>
+        <WorkflowEditor />
+      </Suspense>
     </ReactFlowProvider>
   );
 }
