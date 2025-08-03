@@ -24,6 +24,20 @@ import {
   Grid3X3,
   Command,
   Activity,
+  Bell,
+  Filter,
+  Workflow,
+  Bot,
+  AlertTriangle,
+  CheckCircle,
+  FileText,
+  Settings,
+  Users,
+  Calendar,
+  BarChart3,
+  Shield,
+  Cpu,
+  Network,
 } from "lucide-react";
 
 // ============================================
@@ -88,6 +102,34 @@ export const getIcon = (
       return <Command className={iconClass} />;
     case "activity":
       return <Activity className={iconClass} />;
+    case "bell":
+      return <Bell className={iconClass} />;
+    case "filter":
+      return <Filter className={iconClass} />;
+    case "workflow":
+      return <Workflow className={iconClass} />;
+    case "bot":
+      return <Bot className={iconClass} />;
+    case "alert-triangle":
+      return <AlertTriangle className={iconClass} />;
+    case "check-circle":
+      return <CheckCircle className={iconClass} />;
+    case "file-text":
+      return <FileText className={iconClass} />;
+    case "settings":
+      return <Settings className={iconClass} />;
+    case "users":
+      return <Users className={iconClass} />;
+    case "calendar":
+      return <Calendar className={iconClass} />;
+    case "bar-chart-3":
+      return <BarChart3 className={iconClass} />;
+    case "shield":
+      return <Shield className={iconClass} />;
+    case "cpu":
+      return <Cpu className={iconClass} />;
+    case "network":
+      return <Network className={iconClass} />;
     default:
       return <Circle className={iconClass} />;
   }

@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Node, Edge } from "@xyflow/react";
-import { integrationRegistry } from "../lib/integrations";
+import { integrationRegistry } from "../../../lib/integrations/registry";
+import { parseExpression } from "../../../lib/expression";
 
 // ============================================
 // TYPE DEFINITIONS
@@ -46,61 +47,16 @@ interface WorkflowDefinition {
 }
 
 // ============================================
-// EXPRESSION PARSER (Enhanced)
+// EXPRESSION PARSER
 // ============================================
 
-const parseExpression = (
-  expression: string,
-  context: WorkflowContext
-): unknown => {
-  if (!expression || typeof expression !== "string") return expression;
-
-  return expression.replace(/\{\{([^}]+)\}\}/g, (match, expr) => {
-    try {
-      const trimmed = expr.trim();
-
-      if (trimmed.startsWith("$node.")) {
-        const parts = trimmed.split(".");
-        if (parts.length >= 3) {
-          const nodeId = parts[1];
-          const path = parts.slice(2).join(".");
-          const nodeOutput = context.nodeOutputs[nodeId];
-
-          if (nodeOutput) {
-            const value = getNestedValue(nodeOutput, path);
-            return value !== undefined ? String(value) : "";
-          }
-        }
-      }
-
-      if (trimmed.startsWith("$vars.")) {
-        const varName = trimmed.substring(6);
-        const value = context.variables[varName];
-        return value !== undefined ? String(value) : "";
-      }
-
-      return match;
-    } catch (error) {
-      console.error("Expression parse error:", error);
-      return match;
-    }
-  });
-};
-
-const getNestedValue = (obj: unknown, path: string): unknown => {
-  return path.split(".").reduce((current, key) => {
-    if (current && typeof current === "object" && key in current) {
-      return (current as Record<string, unknown>)[key];
-    }
-    return undefined;
-  }, obj);
-};
+// Using shared parseExpression from lib/expression.ts
 
 // ============================================
 // USE EDITOR HOOK
 // ============================================
 
-export const useEditor = () => {
+export const useEditor = (currentWorkflowId: string | null = null) => {
   const registry = integrationRegistry;
   const [executionState, setExecutionState] = useState<ExecutionState>({
     currentNode: null,
@@ -113,19 +69,16 @@ export const useEditor = () => {
     status: "idle",
   });
   const [isExecuting, setIsExecuting] = useState(false);
-  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(
-    null
-  );
   const [lastLoadedExecutionId, setLastLoadedExecutionId] = useState<
     string | null
   >(null);
 
-  // NEW: Function to restore execution state from database
+  // Function to restore execution state from database
   const restoreLatestExecution = useCallback(async (workflowId: string) => {
     try {
       // Get the most recent execution for this workflow
       const response = await fetch(
-        `/api/workflows/${workflowId}/executions/latest`
+        `/api/execute?workflowId=${workflowId}&latest=true`
       );
       if (!response.ok) return null;
 
@@ -134,7 +87,7 @@ export const useEditor = () => {
 
       // Get detailed execution status with steps
       const statusResponse = await fetch(
-        `/api/executions/${execution.id}/status`
+        `/api/execute?executionId=${execution.id}`
       );
       if (!statusResponse.ok) return null;
 
@@ -197,7 +150,7 @@ export const useEditor = () => {
     }
   }, []);
 
-  // NEW: Function to restore node visual states
+  // Function to restore node visual states
   const restoreNodeStates = useCallback(
     (
       nodes: Node[],
@@ -225,7 +178,7 @@ export const useEditor = () => {
     []
   );
 
-  // MODIFIED: Enhanced loadWorkflow to restore execution state
+  // Enhanced loadWorkflow to restore execution state
   const loadWorkflow = useCallback(async (): Promise<
     | (WorkflowDefinition & {
         restoredExecution?: {
@@ -236,13 +189,13 @@ export const useEditor = () => {
     | null
   > => {
     try {
-      const response = await fetch("/api/workflows");
-      if (!response.ok) throw new Error("Failed to load workflows");
+      const response = await fetch("/api/automations");
+      if (!response.ok) throw new Error("Failed to load automations");
 
       const workflows = await response.json();
       if (workflows.length > 0) {
         const workflow = workflows[0];
-        setCurrentWorkflowId(workflow.id);
+        // setCurrentWorkflowId(workflow.id); // This line is removed as per the edit hint
 
         const result = {
           id: workflow.id,
@@ -253,12 +206,12 @@ export const useEditor = () => {
           updatedAt: workflow.updatedAt || new Date().toISOString(),
         };
 
-        // 🔧 NEW: Try to restore the latest execution state
+        // Try to restore the latest execution state
         const restoredExecution = await restoreLatestExecution(workflow.id);
 
         return {
           ...result,
-          restoredExecution, // Include this so the component can use it
+          restoredExecution,
         };
       }
       return null;
@@ -277,20 +230,24 @@ export const useEditor = () => {
     ) => {
       try {
         const method = currentWorkflowId ? "PUT" : "POST";
-        const url = currentWorkflowId
-          ? `/api/workflows/${currentWorkflowId}`
-          : "/api/workflows";
+        const body = currentWorkflowId
+          ? JSON.stringify({ id: currentWorkflowId, name, nodes, edges })
+          : JSON.stringify({ name, nodes, edges });
 
-        const response = await fetch(url, {
+        const response = await fetch("/api/automations", {
           method,
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, nodes, edges }),
+          body,
         });
 
         if (!response.ok) throw new Error("Failed to save workflow");
 
         const workflow = await response.json();
-        setCurrentWorkflowId(workflow.id);
+
+        // Update the URL to reflect the new automation ID if this is a new workflow
+        if (!currentWorkflowId) {
+          window.history.replaceState({}, "", `/editor?id=${workflow.id}`);
+        }
 
         console.log("Workflow saved:", workflow);
         return { success: true, id: workflow.id };
@@ -335,12 +292,13 @@ export const useEditor = () => {
 
       try {
         // Start background execution
-        const response = await fetch(
-          `/api/workflows/${currentWorkflowId}/execute`,
-          {
-            method: "POST",
-          }
-        );
+        const response = await fetch(`/api/execute`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ workflowId: currentWorkflowId }),
+        });
 
         if (!response.ok) throw new Error("Failed to start execution");
 
@@ -356,26 +314,9 @@ export const useEditor = () => {
         const pollInterval = setInterval(async () => {
           try {
             const statusResponse = await fetch(
-              `/api/executions/${executionId}/status`
+              `/api/execute?executionId=${executionId}`
             );
             const status = await statusResponse.json();
-
-            // 🔧 ALTERNATIVE: Debug what's actually in the execution results
-            // Add this temporarily to see what data you're actually getting:
-            console.log("🔍 DEBUG: Execution status response:", status);
-            if (status.steps) {
-              status.steps.forEach((step: ExecutionStep) => {
-                console.log(`🔍 Step ${step.node_id}:`, {
-                  status: step.status,
-                  result: step.result,
-                  resultKeys: step.result ? Object.keys(step.result) : [],
-                  resultData: step.result?.data,
-                  resultDataKeys: step.result?.data
-                    ? Object.keys(step.result.data)
-                    : [],
-                });
-              });
-            }
 
             if (status.status === "completed" || status.status === "failed") {
               clearInterval(pollInterval);
@@ -388,7 +329,6 @@ export const useEditor = () => {
               // Update node statuses based on execution steps
               if (status.steps) {
                 status.steps.forEach((step: ExecutionStep) => {
-                  // Update node state (this part you already have)
                   onNodeStatusChange(
                     step.node_id,
                     step.status === "completed" ? "success" : "error",
@@ -398,7 +338,6 @@ export const useEditor = () => {
                     step.result
                   );
 
-                  // 🔧 FIX: ALSO update the execution state context
                   if (step.status === "completed" && step.result) {
                     setExecutionState((prev) => ({
                       ...prev,
@@ -406,9 +345,8 @@ export const useEditor = () => {
                         ...prev.context,
                         nodeOutputs: {
                           ...prev.context.nodeOutputs,
-                          [step.node_id]: step.result, // Add this line!
+                          [step.node_id]: step.result,
                         },
-                        // Handle set_variable specifically
                         variables:
                           step.result?.metadata?.subtype === "set_variable" &&
                           step.result.data

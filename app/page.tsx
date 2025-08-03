@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useThemeToggle } from "../hooks/useThemeToggle";
 import {
@@ -17,127 +18,73 @@ import {
 // TYPE DEFINITIONS
 // ============================================
 
+interface NodeData {
+  subtype?: string;
+  description?: string;
+  label?: string;
+}
+
+interface Node {
+  type: string;
+  data?: NodeData;
+}
+
 interface Automation {
   id: string;
   name: string;
-  description: string;
-  status: "active" | "inactive" | "error";
-  triggerType: "manual" | "webhook" | "schedule" | "email";
-  lastRun?: string;
-  updatedAt: string;
+  nodes: Node[];
+  edges: Record<string, unknown>[];
+  status: string;
+  created_at: string;
+  updated_at: string;
 }
-
-// ============================================
-// MOCK DATA
-// ============================================
-
-const mockAutomations: Automation[] = [
-  {
-    id: "1",
-    name: "Customer Welcome Email",
-    description: "Send welcome email when new customer signs up",
-    status: "active",
-    triggerType: "webhook",
-    lastRun: "2 hours ago",
-    updatedAt: "2024-07-30",
-  },
-  {
-    id: "2",
-    name: "Weekly Sales Report",
-    description: "Generate and send weekly sales report to team",
-    status: "active",
-    triggerType: "schedule",
-    lastRun: "3 days ago",
-    updatedAt: "2024-07-28",
-  },
-  {
-    id: "3",
-    name: "Support Ticket Routing",
-    description: "Automatically route support tickets to appropriate team",
-    status: "error",
-    triggerType: "email",
-    lastRun: "1 day ago",
-    updatedAt: "2024-08-01",
-  },
-  {
-    id: "4",
-    name: "Slack Daily Standup",
-    description: "Send daily standup reminder to development team",
-    status: "active",
-    triggerType: "schedule",
-    lastRun: "8 hours ago",
-    updatedAt: "2024-07-29",
-  },
-  {
-    id: "5",
-    name: "Invoice Processing",
-    description: "Process incoming invoices and update accounting system",
-    status: "inactive",
-    triggerType: "email",
-    lastRun: "1 week ago",
-    updatedAt: "2024-07-25",
-  },
-  {
-    id: "6",
-    name: "Lead Qualification",
-    description: "Score and qualify new leads from website forms",
-    status: "active",
-    triggerType: "webhook",
-    lastRun: "30 minutes ago",
-    updatedAt: "2024-08-01",
-  },
-];
-
-// ============================================
-// MOCK API FUNCTIONS
-// ============================================
-
-const mockAPI = {
-  getAutomations: () => {
-    return Promise.resolve(mockAutomations);
-  },
-
-  toggleAutomation: (id: string) => {
-    console.log("Toggling automation:", id);
-    return Promise.resolve({ success: true });
-  },
-
-  deleteAutomation: (id: string) => {
-    console.log("Deleting automation:", id);
-    return Promise.resolve({ success: true });
-  },
-
-  runAutomation: (id: string) => {
-    console.log("Running automation:", id);
-    return Promise.resolve({
-      success: true,
-      executionId: Date.now().toString(),
-    });
-  },
-
-  duplicateAutomation: (id: string) => {
-    console.log("Duplicating automation:", id);
-    return Promise.resolve({ success: true, newId: Date.now().toString() });
-  },
-};
 
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
 
-const getTriggerIcon = (triggerType: string) => {
-  switch (triggerType) {
-    case "webhook":
+const getTriggerIcon = (nodes: Node[]) => {
+  // Find the first trigger node to determine the trigger type
+  const triggerNode = nodes.find(
+    (node) =>
+      node.type === "trigger" ||
+      (node.data?.subtype && node.data.subtype.includes("_trigger"))
+  );
+
+  if (!triggerNode) return <Zap className="w-4 h-4" />;
+
+  const subtype = triggerNode.data?.subtype;
+  switch (subtype) {
+    case "webhook_trigger":
       return <Globe className="w-4 h-4" />;
-    case "schedule":
+    case "schedule_trigger":
       return <Clock className="w-4 h-4" />;
-    case "email":
+    case "email_trigger":
       return <Mail className="w-4 h-4" />;
-    case "manual":
+    case "manual_trigger":
       return <User className="w-4 h-4" />;
     default:
       return <Zap className="w-4 h-4" />;
   }
+};
+
+const getAutomationDescription = (nodes: Node[]) => {
+  if (nodes.length === 0) return "No nodes configured";
+
+  const actionNodes = nodes.filter(
+    (node) =>
+      node.type === "action" ||
+      (node.data?.subtype && !node.data.subtype.includes("_trigger"))
+  );
+
+  if (actionNodes.length === 0) return "No actions configured";
+
+  const firstAction = actionNodes[0];
+  return (
+    firstAction.data?.description ||
+    firstAction.data?.label ||
+    "Action configured"
+  );
 };
 
 // ============================================
@@ -146,11 +93,31 @@ const getTriggerIcon = (triggerType: string) => {
 
 export default function Home() {
   const { theme, toggleTheme, mounted } = useThemeToggle();
-  const [automations, setAutomations] = useState<Automation[]>(mockAutomations);
+  const [automations, setAutomations] = useState<Automation[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch automations on component mount
+  useEffect(() => {
+    const fetchAutomations = async () => {
+      try {
+        const response = await fetch("/api/automations");
+        if (response.ok) {
+          const data = await response.json();
+          setAutomations(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch automations:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAutomations();
+  }, []);
 
   // Sort automations by last updated
   const sortedAutomations = automations.sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+    (a, b) =>
+      new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
   );
 
   const handleDeleteAutomation = async (id: string) => {
@@ -158,10 +125,14 @@ export default function Home() {
       return;
 
     try {
-      await mockAPI.deleteAutomation(id);
-      setAutomations((prev) =>
-        prev.filter((automation) => automation.id !== id)
-      );
+      const response = await fetch(`/api/automations?id=${id}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setAutomations((prev) =>
+          prev.filter((automation) => automation.id !== id)
+        );
+      }
     } catch (error) {
       console.error("Failed to delete automation:", error);
     }
@@ -216,37 +187,50 @@ export default function Home() {
               </button>
             )}
 
-            <Link
-              href="/editor"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:bg-[var(--primary)]/90 transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              New Automation
-            </Link>
+            {!loading && sortedAutomations.length > 0 && (
+              <Link
+                href="/editor"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:bg-[var(--primary)]/90 transition-colors text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                New Automation
+              </Link>
+            )}
           </div>
         </div>
       </div>
 
       {/* AUTOMATION GRID */}
       <div className="p-6">
-        {sortedAutomations.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 mx-auto mb-4 bg-[var(--muted)] rounded-full flex items-center justify-center">
-              <Zap className="w-8 h-8 text-[var(--muted-foreground)]" />
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+            <div className="text-center">
+              <div className="animate-spin w-8 h-8 border-2 border-[var(--primary)] border-t-transparent rounded-full mx-auto mb-4"></div>
+              <p className="text-[var(--muted-foreground)]">
+                Loading automations...
+              </p>
             </div>
-            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
-              No automations yet
-            </h3>
-            <p className="text-[var(--muted-foreground)] mb-6">
-              Create your first automation to get started
-            </p>
-            <Link
-              href="/editor"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:bg-[var(--primary)]/90 transition-colors text-sm font-medium"
-            >
-              <Plus className="w-4 h-4" />
-              Create Automation
-            </Link>
+          </div>
+        ) : sortedAutomations.length === 0 ? (
+          <div className="flex items-center justify-center min-h-[calc(100vh-200px)]">
+            <div className="text-center">
+              <div className="w-16 h-16 mx-auto mb-4 bg-[var(--muted)] rounded-full flex items-center justify-center">
+                <Zap className="w-8 h-8 text-[var(--muted-foreground)]" />
+              </div>
+              <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
+                No automations yet
+              </h3>
+              <p className="text-[var(--muted-foreground)] mb-6">
+                Create your first automation to get started
+              </p>
+              <Link
+                href="/editor"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:bg-[var(--primary)]/90 transition-colors text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Create Automation
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -271,22 +255,22 @@ export default function Home() {
                 {/* Header */}
                 <div className="flex items-start gap-3 mb-4">
                   <div className="p-2.5 bg-[var(--muted)] rounded-lg flex-shrink-0">
-                    {getTriggerIcon(automation.triggerType)}
+                    {getTriggerIcon(automation.nodes)}
                   </div>
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-[var(--foreground)] text-lg mb-1 truncate">
                       {automation.name}
                     </h3>
                     <p className="text-sm text-[var(--muted-foreground)] line-clamp-2 leading-relaxed">
-                      {automation.description}
+                      {getAutomationDescription(automation.nodes)}
                     </p>
                   </div>
                 </div>
 
                 {/* Action Bar */}
-                <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                <div className="flex items-center justify-between pt-3 border-t border-[var(--border)] relative z-20">
                   <div className="text-xs text-[var(--muted-foreground)]">
-                    {automation.lastRun}
+                    {new Date(automation.updated_at).toLocaleDateString()}
                   </div>
                   <div className="flex items-center gap-2">
                     <Link
