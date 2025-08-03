@@ -1,0 +1,5451 @@
+===== File: app/layout.tsx =====
+Type: .tsx
+----- Content Start -----
+import type { Metadata } from "next";
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "next-themes";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+export const metadata: Metadata = {
+  title: "Agent Maker",
+  description: "Automations and Workflows for your business",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var theme = localStorage.getItem('theme');
+                  if (!theme) {
+                    theme = 'dark';
+                  }
+                  if (theme === 'system') {
+                    theme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                  }
+                  
+                  var themeColor = theme === 'dark' ? '#0a0a0a' : '#ffffff';
+                  var meta = document.createElement('meta');
+                  meta.name = 'theme-color';
+                  meta.content = themeColor;
+                  document.head.appendChild(meta);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
+      </head>
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
+          {children}
+        </ThemeProvider>
+      </body>
+    </html>
+  );
+}
+
+----- Content End -----
+
+===== File: app/page.tsx =====
+Type: .tsx
+----- Content Start -----
+"use client";
+import { useState } from "react";
+import Link from "next/link";
+import { useThemeToggle } from "../hooks/useThemeToggle";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Clock,
+  Zap,
+  User,
+  Mail,
+  Globe,
+} from "lucide-react";
+
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
+
+interface Automation {
+  id: string;
+  name: string;
+  description: string;
+  status: "active" | "inactive" | "error";
+  triggerType: "manual" | "webhook" | "schedule" | "email";
+  lastRun?: string;
+  updatedAt: string;
+}
+
+// ============================================
+// MOCK DATA
+// ============================================
+
+const mockAutomations: Automation[] = [
+  {
+    id: "1",
+    name: "Customer Welcome Email",
+    description: "Send welcome email when new customer signs up",
+    status: "active",
+    triggerType: "webhook",
+    lastRun: "2 hours ago",
+    updatedAt: "2024-07-30",
+  },
+  {
+    id: "2",
+    name: "Weekly Sales Report",
+    description: "Generate and send weekly sales report to team",
+    status: "active",
+    triggerType: "schedule",
+    lastRun: "3 days ago",
+    updatedAt: "2024-07-28",
+  },
+  {
+    id: "3",
+    name: "Support Ticket Routing",
+    description: "Automatically route support tickets to appropriate team",
+    status: "error",
+    triggerType: "email",
+    lastRun: "1 day ago",
+    updatedAt: "2024-08-01",
+  },
+  {
+    id: "4",
+    name: "Slack Daily Standup",
+    description: "Send daily standup reminder to development team",
+    status: "active",
+    triggerType: "schedule",
+    lastRun: "8 hours ago",
+    updatedAt: "2024-07-29",
+  },
+  {
+    id: "5",
+    name: "Invoice Processing",
+    description: "Process incoming invoices and update accounting system",
+    status: "inactive",
+    triggerType: "email",
+    lastRun: "1 week ago",
+    updatedAt: "2024-07-25",
+  },
+  {
+    id: "6",
+    name: "Lead Qualification",
+    description: "Score and qualify new leads from website forms",
+    status: "active",
+    triggerType: "webhook",
+    lastRun: "30 minutes ago",
+    updatedAt: "2024-08-01",
+  },
+];
+
+// ============================================
+// MOCK API FUNCTIONS
+// ============================================
+
+const mockAPI = {
+  getAutomations: () => {
+    return Promise.resolve(mockAutomations);
+  },
+
+  toggleAutomation: (id: string) => {
+    console.log("Toggling automation:", id);
+    return Promise.resolve({ success: true });
+  },
+
+  deleteAutomation: (id: string) => {
+    console.log("Deleting automation:", id);
+    return Promise.resolve({ success: true });
+  },
+
+  runAutomation: (id: string) => {
+    console.log("Running automation:", id);
+    return Promise.resolve({
+      success: true,
+      executionId: Date.now().toString(),
+    });
+  },
+
+  duplicateAutomation: (id: string) => {
+    console.log("Duplicating automation:", id);
+    return Promise.resolve({ success: true, newId: Date.now().toString() });
+  },
+};
+
+// ============================================
+// UTILITY FUNCTIONS
+// ============================================
+
+const getTriggerIcon = (triggerType: string) => {
+  switch (triggerType) {
+    case "webhook":
+      return <Globe className="w-4 h-4" />;
+    case "schedule":
+      return <Clock className="w-4 h-4" />;
+    case "email":
+      return <Mail className="w-4 h-4" />;
+    case "manual":
+      return <User className="w-4 h-4" />;
+    default:
+      return <Zap className="w-4 h-4" />;
+  }
+};
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+export default function Home() {
+  const { theme, toggleTheme, mounted } = useThemeToggle();
+  const [automations, setAutomations] = useState<Automation[]>(mockAutomations);
+
+  // Sort automations by last updated
+  const sortedAutomations = automations.sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+  );
+
+  const handleDeleteAutomation = async (id: string) => {
+    if (!window.confirm("Are you sure you want to delete this automation?"))
+      return;
+
+    try {
+      await mockAPI.deleteAutomation(id);
+      setAutomations((prev) =>
+        prev.filter((automation) => automation.id !== id)
+      );
+    } catch (error) {
+      console.error("Failed to delete automation:", error);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-[var(--background)]">
+      {/* TOP BAR */}
+      <div className="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            {/* Empty space for layout consistency */}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            {mounted && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-[var(--foreground)] hover:bg-[var(--muted)] rounded-lg transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
+
+            <Link
+              href="/editor"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:bg-[var(--primary)]/90 transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              New Automation
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* AUTOMATION GRID */}
+      <div className="p-6">
+        {sortedAutomations.length === 0 ? (
+          <div className="text-center py-12">
+            <div className="w-16 h-16 mx-auto mb-4 bg-[var(--muted)] rounded-full flex items-center justify-center">
+              <Zap className="w-8 h-8 text-[var(--muted-foreground)]" />
+            </div>
+            <h3 className="text-lg font-medium text-[var(--foreground)] mb-2">
+              No automations yet
+            </h3>
+            <p className="text-[var(--muted-foreground)] mb-6">
+              Create your first automation to get started
+            </p>
+            <Link
+              href="/editor"
+              className="inline-flex items-center gap-2 px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:bg-[var(--primary)]/90 transition-colors text-sm font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Create Automation
+            </Link>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sortedAutomations.map((automation) => (
+              <div
+                key={automation.id}
+                className="group relative bg-[var(--card)] border border-[var(--border)] rounded-xl p-5 hover:shadow-lg hover:border-[var(--ring)] transition-all duration-200 cursor-pointer"
+              >
+                {/* Status Indicator */}
+                <div className="absolute top-4 right-4">
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      automation.status === "active"
+                        ? "bg-green-500"
+                        : automation.status === "error"
+                        ? "bg-red-500"
+                        : "bg-gray-400"
+                    }`}
+                  />
+                </div>
+
+                {/* Header */}
+                <div className="flex items-start gap-3 mb-4">
+                  <div className="p-2.5 bg-[var(--muted)] rounded-lg flex-shrink-0">
+                    {getTriggerIcon(automation.triggerType)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-[var(--foreground)] text-lg mb-1 truncate">
+                      {automation.name}
+                    </h3>
+                    <p className="text-sm text-[var(--muted-foreground)] line-clamp-2 leading-relaxed">
+                      {automation.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Bar */}
+                <div className="flex items-center justify-between pt-3 border-t border-[var(--border)]">
+                  <div className="text-xs text-[var(--muted-foreground)]">
+                    {automation.lastRun}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href={`/editor?id=${automation.id}`}
+                      className="p-2 text-[var(--muted-foreground)] hover:text-[var(--foreground)] hover:bg-[var(--muted)] rounded-lg transition-colors"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Edit className="w-4 h-4" />
+                    </Link>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteAutomation(automation.id);
+                      }}
+                      className="p-2 text-[var(--muted-foreground)] hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Click Overlay */}
+                <Link
+                  href={`/editor?id=${automation.id}`}
+                  className="absolute inset-0 z-10"
+                  aria-label={`View ${automation.name} details`}
+                />
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+----- Content End -----
+
+===== File: app/globals.css =====
+Type: .css
+----- Content Start -----
+@import "tailwindcss";
+
+/* CSS Variables for Light and Dark Themes */
+:root {
+  /* Light theme variables */
+  --background: #ffffff;
+  --foreground: #171717;
+  --card: #ffffff;
+  --card-foreground: #171717;
+  --popover: #ffffff;
+  --popover-foreground: #171717;
+  --primary: #0f172a;
+  --primary-foreground: #f8fafc;
+  --secondary: #f1f5f9;
+  --secondary-foreground: #0f172a;
+  --muted: #f1f5f9;
+  --muted-foreground: #64748b;
+  --accent: #f1f5f9;
+  --accent-foreground: #0f172a;
+  --destructive: #ef4444;
+  --destructive-foreground: #f8fafc;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #0f172a;
+  --radius: 0.5rem;
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-thumb-hover: #9ca3af;
+  --scrollbar-thumb-active: #6b7280;
+}
+
+.dark {
+  /* Dark theme variables */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --card: #171717;
+  --card-foreground: #ededed;
+  --popover: #171717;
+  --popover-foreground: #ededed;
+  --primary: #f8fafc;
+  --primary-foreground: #0f172a;
+  --secondary: #262626;
+  --secondary-foreground: #f8fafc;
+  --muted: #262626;
+  --muted-foreground: #a1a1aa;
+  --accent: #262626;
+  --accent-foreground: #f8fafc;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #f8fafc;
+  --border: #262626;
+  --input: #262626;
+  --ring: #f8fafc;
+  --scrollbar-thumb: #404040;
+  --scrollbar-thumb-hover: #525252;
+  --scrollbar-thumb-active: #737373;
+}
+
+/* Apply theme colors to body */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Custom Scrollbar Styles */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:active {
+  background: var(--scrollbar-thumb-active);
+}
+
+/* Firefox scrollbar styles */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) transparent;
+}
+
+/* Modern Dropdown/Select Styles */
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px;
+  padding-right: 40px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+select:hover {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+select:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%230f172a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.dark select {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23a1a1aa' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.dark select:hover {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23d1d5db' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.dark select:focus {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23f8fafc' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Option styling for better readability */
+select option {
+  background-color: var(--background);
+  color: var(--foreground);
+  padding: 8px 12px;
+  font-size: 14px;
+}
+
+select option:hover {
+  background-color: var(--accent);
+}
+
+select option:checked {
+  background-color: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* Firefox specific select styling */
+@-moz-document url-prefix() {
+  select {
+    background-image: none;
+    padding-right: 12px;
+  }
+
+  select::-moz-focus-inner {
+    border: 0;
+  }
+
+  select:-moz-focusring {
+    color: transparent;
+    text-shadow: 0 0 0 var(--foreground);
+  }
+}
+
+/* Enhanced focus states for better accessibility */
+select:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/* Disabled state styling */
+select:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+.dark select:disabled {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23525252' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+----- Content End -----
+
+===== File: app/api/workflows/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextRequest, NextResponse } from "next/server";
+import { pool } from "@/lib/db";
+
+export async function GET() {
+  try {
+    const result = await pool.query(
+      "SELECT * FROM workflows ORDER BY updated_at DESC"
+    );
+    return NextResponse.json(result.rows);
+  } catch (error) {
+    console.error("Database error:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch workflows" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const { name, nodes, edges } = await request.json();
+
+    const result = await pool.query(
+      "INSERT INTO workflows (name, nodes, edges) VALUES ($1, $2, $3) RETURNING *",
+      [name, JSON.stringify(nodes), JSON.stringify(edges)]
+    );
+
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error("Database error:", error);
+    return NextResponse.json(
+      { error: "Failed to save workflow" },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/api/workflows/[id]/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextRequest, NextResponse } from "next/server";
+import { pool } from "@/lib/db";
+
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+    const { name, nodes, edges } = await request.json();
+
+    const result = await pool.query(
+      "UPDATE workflows SET name = $1, nodes = $2, edges = $3, updated_at = NOW() WHERE id = $4 RETURNING *",
+      [name, JSON.stringify(nodes), JSON.stringify(edges), id]
+    );
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Workflow not found" },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json(result.rows[0]);
+  } catch (error) {
+    console.error("Database error:", error);
+    return NextResponse.json(
+      { error: "Failed to update workflow" },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/api/workflows/[id]/execute/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextRequest, NextResponse } from "next/server";
+import { pool } from "@/lib/db";
+
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    // Create execution record
+    const executionResult = await pool.query(
+      "INSERT INTO workflow_executions (workflow_id, status) VALUES ($1, $2) RETURNING *",
+      [id, "pending"]
+    );
+
+    const execution = executionResult.rows[0];
+
+    // Queue the execution (we'll implement the queue next)
+    // For now, just return the execution ID
+
+    return NextResponse.json({
+      executionId: execution.id,
+      status: "queued",
+    });
+  } catch (error) {
+    console.error("Database error:", error);
+    return NextResponse.json(
+      { error: "Failed to start execution" },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/api/logs/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextRequest, NextResponse } from "next/server";
+import { LogContext, logger, LogLevel } from "@/lib/logger";
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+
+    const options = {
+      level: searchParams.get("level") as LogLevel,
+      context: searchParams.get("context") as LogContext,
+      workflowId: searchParams.get("workflowId") || undefined,
+      executionId: searchParams.get("executionId") || undefined,
+      nodeId: searchParams.get("nodeId") || undefined,
+      userId: searchParams.get("userId") || undefined,
+      limit: searchParams.get("limit")
+        ? parseInt(searchParams.get("limit")!)
+        : 100,
+      offset: searchParams.get("offset")
+        ? parseInt(searchParams.get("offset")!)
+        : 0,
+      startDate: searchParams.get("startDate")
+        ? new Date(searchParams.get("startDate")!)
+        : undefined,
+      endDate: searchParams.get("endDate")
+        ? new Date(searchParams.get("endDate")!)
+        : undefined,
+    };
+
+    const logs = await logger.getLogs(options);
+    return NextResponse.json({ logs, count: logs.length });
+  } catch (error) {
+    console.error("Failed to fetch logs:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch logs" },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/api/logs/clear/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextResponse } from "next/server";
+import { pool } from "@/lib/db";
+
+export async function DELETE() {
+  try {
+    await pool.query("DELETE FROM system_logs");
+    return NextResponse.json({ message: "All logs cleared successfully" });
+  } catch (error) {
+    console.error("Failed to clear logs:", error);
+    return NextResponse.json(
+      { error: "Failed to clear logs" },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/api/logs/stats/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextResponse } from "next/server";
+import { logger } from "@/lib/logger";
+
+export async function GET() {
+  try {
+    const stats = await logger.getLogStats();
+    return NextResponse.json(stats);
+  } catch (error) {
+    console.error("Failed to fetch log stats:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch log stats" },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/api/executions/[id]/status/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextRequest, NextResponse } from "next/server";
+import { pool } from "@/lib/db";
+
+interface ExecutionStep {
+  id: string | null;
+  node_id: string;
+  status: string;
+  result: string | number | boolean | object | null;
+  started_at: string | null;
+  completed_at: string | null;
+  error_message: string | null;
+}
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params;
+
+    // Get execution with steps
+    const executionQuery = `
+      SELECT 
+        we.*,
+        json_agg(
+          json_build_object(
+            'id', es.id,
+            'node_id', es.node_id,
+            'status', es.status,
+            'result', es.result,
+            'started_at', es.started_at,
+            'completed_at', es.completed_at,
+            'error_message', es.error_message
+          ) ORDER BY es.created_at
+        ) as steps
+      FROM workflow_executions we
+      LEFT JOIN execution_steps es ON we.id = es.execution_id
+      WHERE we.id = $1
+      GROUP BY we.id
+    `;
+
+    const result = await pool.query(executionQuery, [id]);
+
+    if (result.rows.length === 0) {
+      return NextResponse.json(
+        { error: "Execution not found" },
+        { status: 404 }
+      );
+    }
+
+    const execution = result.rows[0];
+
+    return NextResponse.json({
+      id: execution.id,
+      status: execution.status,
+      started_at: execution.started_at,
+      completed_at: execution.completed_at,
+      error_message: execution.error_message,
+      steps: execution.steps.filter((step: ExecutionStep) => step.id !== null), // Remove null steps
+    });
+  } catch (error) {
+    console.error("Database error:", error);
+    return NextResponse.json(
+      { error: "Failed to get execution status" },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/api/start-background/route.ts =====
+Type: .ts
+----- Content Start -----
+import { NextResponse } from "next/server";
+import { startBackgroundProcesses } from "@/lib/startup";
+import { pool } from "@/lib/db";
+
+const createTablesSQL = `
+CREATE TABLE IF NOT EXISTS workflows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  nodes JSONB NOT NULL,
+  edges JSONB NOT NULL,
+  status VARCHAR(20) DEFAULT 'active',
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS workflow_executions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
+  status VARCHAR(20) DEFAULT 'pending',
+  started_at TIMESTAMP DEFAULT NOW(),
+  completed_at TIMESTAMP,
+  context JSONB DEFAULT '{}',
+  error_message TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS execution_steps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  execution_id UUID REFERENCES workflow_executions(id) ON DELETE CASCADE,
+  node_id VARCHAR(255) NOT NULL,
+  status VARCHAR(20) DEFAULT 'pending',
+  result JSONB,
+  started_at TIMESTAMP,
+  completed_at TIMESTAMP,
+  error_message TEXT,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS scheduled_workflows (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workflow_id UUID REFERENCES workflows(id) ON DELETE CASCADE,
+  cron_expression VARCHAR(100) NOT NULL,
+  timezone VARCHAR(50) DEFAULT 'UTC',
+  last_run TIMESTAMP,
+  next_run TIMESTAMP NOT NULL,
+  active BOOLEAN DEFAULT true,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_workflow_id ON workflow_executions(workflow_id);
+CREATE INDEX IF NOT EXISTS idx_workflow_executions_status ON workflow_executions(status);
+CREATE INDEX IF NOT EXISTS idx_execution_steps_execution_id ON execution_steps(execution_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_workflows_next_run ON scheduled_workflows(next_run, active);
+`;
+
+export async function POST() {
+  try {
+    // First, ensure tables exist
+    await pool.query(createTablesSQL);
+    console.log("Database tables created/verified");
+
+    // Then start background processes
+    startBackgroundProcesses();
+
+    return NextResponse.json({
+      status: "Database initialized and background processes started",
+    });
+  } catch (error) {
+    console.error("Failed to initialize:", error);
+    return NextResponse.json(
+      {
+        error: "Failed to initialize database and background processes",
+      },
+      { status: 500 }
+    );
+  }
+}
+
+----- Content End -----
+
+===== File: app/editor/page.tsx =====
+Type: .tsx
+----- Content Start -----
+"use client";
+
+import { useState, useCallback, useEffect, DragEvent } from "react";
+import Link from "next/link";
+import { useThemeToggle } from "../../hooks/useThemeToggle";
+import { useEditor } from "../../hooks/useEditor";
+import { integrationRegistry } from "../../lib/integrations";
+import { getIcon } from "../../hooks/useIcons";
+import LogsPanel from "../../components/LogsPanel";
+import {
+  ReactFlow,
+  ReactFlowProvider,
+  applyNodeChanges,
+  applyEdgeChanges,
+  addEdge,
+  NodeChange,
+  EdgeChange,
+  Connection,
+  Node,
+  Edge,
+  NodeTypes,
+  Background,
+  BackgroundVariant,
+  Handle,
+  Position,
+  useReactFlow,
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
+import { Loader2, FileText, Copy as CopyIcon } from "lucide-react";
+
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
+
+interface NodeData {
+  label: string;
+  subtype?: string;
+  icon?: string;
+  description?: string;
+  config?: Record<string, unknown>;
+  status?: "idle" | "running" | "success" | "error";
+  lastRun?: string;
+  executionResult?: Record<string, unknown>;
+  colorClass?: string;
+  borderClass?: string;
+  selectedBorderClass?: string;
+}
+
+// ============================================
+// CUSTOM NODE COMPONENTS
+// ============================================
+
+const BaseNode = ({
+  data,
+  selected,
+  icon,
+}: {
+  data: NodeData;
+  selected: boolean;
+  icon: string;
+}) => {
+  const getStatusIndicator = () => {
+    switch (data.status) {
+      case "running":
+        return <div className="w-2 h-2 bg-black rounded-full animate-pulse" />;
+      case "success":
+        return <div className="w-2 h-2 bg-green-500 rounded-full" />;
+      case "error":
+        return <div className="w-2 h-2 bg-red-500 rounded-full" />;
+      default:
+        return <div className="w-2 h-2 bg-gray-300 rounded-full" />;
+    }
+  };
+
+  const getIconComponent = () => {
+    const colorClass = data.colorClass || "text-[var(--foreground)]";
+    return getIcon(icon, "w-5 h-5", colorClass);
+  };
+
+  const getBorderClasses = () => {
+    if (selected) {
+      return (
+        data.selectedBorderClass ||
+        "border-gray-800 dark:border-gray-200 shadow-lg ring-1 ring-gray-500/20 dark:ring-gray-400/20"
+      );
+    } else {
+      return (
+        data.borderClass ||
+        "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+      );
+    }
+  };
+
+  return (
+    <div
+      className={`
+        relative bg-[var(--card)] rounded-xl shadow-sm border transition-all duration-200
+        min-w-[180px] px-5 py-4 group hover:shadow-md
+        ${getBorderClasses()}
+      `}
+    >
+      {/* Only show left handle for non-trigger nodes or triggers that support input */}
+      {data.subtype !== "manual_trigger" &&
+        data.subtype !== "webhook_trigger" &&
+        data.subtype !== "schedule_trigger" && (
+          <Handle
+            type="target"
+            position={Position.Left}
+            style={{
+              background: "#6b7280",
+              width: 12,
+              height: 12,
+              border: "2px solid white",
+              boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+            }}
+            className="hover:bg-gray-600 transition-colors"
+          />
+        )}
+      <Handle
+        type="source"
+        position={Position.Right}
+        style={{
+          background: "#6b7280",
+          width: 12,
+          height: 12,
+          border: "2px solid white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        }}
+        className="hover:bg-gray-600 transition-colors"
+      />
+      {/* Status indicator */}
+      <div className="absolute top-3 right-3">{getStatusIndicator()}</div>
+
+      {/* Content */}
+      <div className="pr-6">
+        <div className="flex items-center gap-3 mb-2">
+          {getIconComponent()}
+          <h3 className="font-medium text-[var(--foreground)] leading-tight">
+            {data.label}
+          </h3>
+        </div>
+
+        <p className="text-sm text-[var(--muted-foreground)] leading-relaxed">
+          {data.description || "Not configured"}
+        </p>
+
+        {data.lastRun && (
+          <p className="text-xs text-[var(--muted-foreground)] mt-2">
+            {data.lastRun}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const TriggerNode = ({
+  data,
+  selected,
+}: {
+  data: NodeData;
+  selected: boolean;
+}) => <BaseNode data={data} selected={selected} icon={data.icon || "zap"} />;
+
+const ActionNode = ({
+  data,
+  selected,
+}: {
+  data: NodeData;
+  selected: boolean;
+}) => <BaseNode data={data} selected={selected} icon={data.icon || "circle"} />;
+
+const ConditionNode = ({
+  data,
+  selected,
+}: {
+  data: NodeData;
+  selected: boolean;
+}) => (
+  <BaseNode data={data} selected={selected} icon={data.icon || "diamond"} />
+);
+
+// Register custom node types
+const nodeTypes: NodeTypes = {
+  trigger: TriggerNode,
+  action: ActionNode,
+  condition: ConditionNode,
+  logic: ConditionNode, // Logic nodes should use the ConditionNode component
+};
+
+// ============================================
+// MAIN APP COMPONENT
+// ============================================
+
+function WorkflowEditor() {
+  const { theme, toggleTheme, mounted } = useThemeToggle();
+  const {
+    getIntegration,
+    getTriggerIntegrations,
+    getActionIntegrations,
+    getLogicIntegrations,
+  } = {
+    getIntegration: (id: string) => integrationRegistry.get(id),
+    getTriggerIntegrations: () => integrationRegistry.getTriggers(),
+    getActionIntegrations: () => integrationRegistry.getActions(),
+    getLogicIntegrations: () => integrationRegistry.getLogic(),
+  };
+  const { screenToFlowPosition } = useReactFlow();
+  const connectionLineStyle = { stroke: "#d1d5db", strokeWidth: 2 };
+
+  // Core workflow state
+  const [nodes, setNodes] = useState<Node[]>([]);
+
+  const [edges, setEdges] = useState<Edge[]>([]);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
+
+  // UI state
+  const [workflowName, setWorkflowName] = useState("Untitled Workflow");
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [showExecutionPanel, setShowExecutionPanel] = useState(false);
+  const [showLogsPanel, setShowLogsPanel] = useState(false);
+
+  // Workflow engine hook
+  const {
+    executionState,
+    isExecuting,
+    saveWorkflow: saveWorkflowAPI,
+    loadWorkflow: loadWorkflowAPI,
+    executeWorkflow: executeWorkflowAPI,
+  } = useEditor();
+
+  // Auto-save on changes
+  useEffect(() => {
+    const autoSave = setTimeout(() => {
+      if (nodes.length > 0) {
+        // Only save if there are nodes
+        saveWorkflowAPI(nodes, edges, workflowName).catch(console.error);
+      }
+    }, 1000);
+
+    return () => clearTimeout(autoSave);
+  }, [nodes, edges, workflowName, saveWorkflowAPI]);
+
+  // Load saved workflow on mount
+  useEffect(() => {
+    const loadSavedWorkflow = async () => {
+      const saved = await loadWorkflowAPI();
+      if (saved) {
+        setNodes(saved.nodes);
+        setEdges(saved.edges);
+        setWorkflowName(saved.name);
+        console.log("Loaded workflow:", saved);
+      }
+    };
+
+    loadSavedWorkflow();
+  }, [loadWorkflowAPI]);
+
+  // ============================================
+  // REACTFLOW EVENT HANDLERS
+  // ============================================
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes((nds) => applyNodeChanges(changes, nds));
+  }, []);
+
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setEdges((eds) => applyEdgeChanges(changes, eds));
+  }, []);
+
+  const onConnect = useCallback((params: Connection) => {
+    setEdges((eds) =>
+      addEdge(
+        {
+          ...params,
+          style: { stroke: "#d1d5db", strokeWidth: 2 },
+          animated: false,
+        },
+        eds
+      )
+    );
+  }, []);
+
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    setSelectedNode(node);
+  }, []);
+
+  const onSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
+    // If no nodes are selected, clear the selectedNode
+    if (nodes.length === 0) {
+      setSelectedNode(null);
+    }
+  }, []);
+
+  // ============================================
+  // DRAG & DROP FUNCTIONALITY
+  // ============================================
+
+  const onDragOver = useCallback((event: DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const onDrop = useCallback(
+    (event: DragEvent) => {
+      event.preventDefault();
+      const nodeData = event.dataTransfer.getData("application/reactflow");
+      if (!nodeData) return;
+
+      const {
+        type,
+        label,
+        subtype,
+        icon,
+        description,
+        colorClass,
+        borderClass,
+        selectedBorderClass,
+      } = JSON.parse(nodeData);
+
+      // Convert screen coordinates to flow coordinates (accounts for zoom and pan)
+      const position = screenToFlowPosition({
+        x: event.clientX,
+        y: event.clientY,
+      });
+
+      const newNode: Node = {
+        id: `${type}-${Date.now()}`,
+        type,
+        position,
+        data: {
+          label,
+          subtype, // This is now the integration ID
+          icon,
+          description,
+          status: "idle",
+          colorClass,
+          borderClass,
+          selectedBorderClass,
+          config: { integrationId: subtype }, // Add this line
+        },
+      };
+
+      setNodes((nds) => [...nds, newNode]);
+    },
+    [screenToFlowPosition]
+  );
+
+  const onDragStart = (
+    event: DragEvent,
+    nodeType: string,
+    label: string,
+    subtype: string,
+    icon: string,
+    description: string,
+    colorClass: string,
+    borderClass: string,
+    selectedBorderClass: string
+  ) => {
+    event.dataTransfer.setData(
+      "application/reactflow",
+      JSON.stringify({
+        type: nodeType,
+        label,
+        subtype,
+        icon,
+        description,
+        colorClass,
+        borderClass,
+        selectedBorderClass,
+      })
+    );
+    event.dataTransfer.effectAllowed = "move";
+  };
+
+  // ============================================
+  // WORKFLOW OPERATIONS
+  // ============================================
+
+  const handleTitleEdit = () => {
+    setIsEditingTitle(true);
+  };
+
+  const handleTitleSave = () => {
+    setIsEditingTitle(false);
+  };
+
+  const handleTitleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleTitleSave();
+    } else if (e.key === "Escape") {
+      setIsEditingTitle(false);
+    }
+  };
+
+  const executeWorkflow = async () => {
+    const onNodeStatusChange = (
+      nodeId: string,
+      status: "idle" | "running" | "success" | "error",
+      lastRun?: string,
+      executionResult?: Record<string, unknown>
+    ) => {
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId
+            ? {
+                ...n,
+                data: {
+                  ...n.data,
+                  status,
+                  lastRun,
+                  executionResult,
+                },
+              }
+            : n
+        )
+      );
+    };
+
+    setShowExecutionPanel(true);
+    await executeWorkflowAPI(nodes, edges, onNodeStatusChange);
+  };
+
+  const updateNodeConfig = (
+    nodeId: string,
+    config: Record<string, unknown>
+  ) => {
+    setNodes((nds) =>
+      nds.map((node) =>
+        node.id === nodeId ? { ...node, data: { ...node.data, config } } : node
+      )
+    );
+
+    // Also update the selectedNode state to reflect the changes immediately
+    if (selectedNode && selectedNode.id === nodeId) {
+      setSelectedNode({
+        ...selectedNode,
+        data: { ...selectedNode.data, config },
+      });
+    }
+  };
+
+  const deleteSelectedNode = () => {
+    if (!selectedNode) return;
+    setNodes((nds) => nds.filter((n) => n.id !== selectedNode.id));
+    setEdges((eds) =>
+      eds.filter(
+        (e) => e.source !== selectedNode.id && e.target !== selectedNode.id
+      )
+    );
+    setSelectedNode(null);
+  };
+
+  const renderSidebarIcon = (
+    iconName: string,
+    nodeData: { colorClass?: string }
+  ) => {
+    const colorClass = nodeData.colorClass || "text-[var(--foreground)]";
+    return getIcon(iconName, "w-5 h-5", colorClass);
+  };
+
+  const copyExpression = (expression: string) => {
+    navigator.clipboard.writeText(expression);
+    // Could show a little toast here if you weren't so lazy
+  };
+
+  // State to track which field was just copied for visual feedback
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Enhanced copy function with visual feedback
+  const copyDataFieldExpressionWithFeedback = (
+    nodeId: string,
+    fieldKey: string
+  ) => {
+    navigator.clipboard.writeText(`{{$node.${nodeId}.data.${fieldKey}}}`);
+    setCopiedField(fieldKey);
+    setTimeout(() => setCopiedField(null), 1500); // Reset after 1.5 seconds
+  };
+
+  // ============================================
+  // RENDER
+  // ============================================
+
+  return (
+    <div className="flex flex-col h-screen bg-[var(--background)]">
+      {/* TOP BAR - Workflow Title and Menu */}
+      <div className="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-8">
+            {/* Home Button */}
+            <Link
+              href="/"
+              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
+              aria-label="Go to home"
+            >
+              {getIcon("dashboard", "w-6 h-6", "text-[var(--foreground)]")}
+            </Link>
+
+            <div className="flex items-center gap-4">
+              {isEditingTitle ? (
+                <input
+                  type="text"
+                  value={workflowName}
+                  onChange={(e) => setWorkflowName(e.target.value)}
+                  onBlur={handleTitleSave}
+                  onKeyDown={handleTitleKeyDown}
+                  className="text-xl font-semibold text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md shadow-sm focus:border-[var(--ring)] focus:ring-1 focus:ring-[var(--ring)] focus:outline-none px-3 py-1"
+                  autoFocus
+                />
+              ) : (
+                <h1
+                  className="text-xl font-semibold text-[var(--foreground)] cursor-pointer hover:text-[var(--muted-foreground)] transition-colors px-1 py-0.5 rounded"
+                  onClick={handleTitleEdit}
+                  title="Click to edit title"
+                >
+                  {workflowName}
+                </h1>
+              )}
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            {mounted && (
+              <button
+                onClick={toggleTheme}
+                className="p-2 text-[var(--foreground)] hover:bg-[var(--muted)] rounded-lg transition-colors"
+                aria-label="Toggle theme"
+              >
+                {theme === "dark" ? (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"
+                    />
+                  </svg>
+                ) : (
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"
+                    />
+                  </svg>
+                )}
+              </button>
+            )}
+            <button
+              onClick={() => setShowLogsPanel(true)}
+              className="p-2 text-[var(--foreground)] hover:bg-[var(--muted)] rounded-lg transition-colors"
+              title="View system logs"
+            >
+              <FileText className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={() => setShowExecutionPanel(true)}
+              className="p-2 text-[var(--foreground)] hover:bg-[var(--muted)] rounded-lg transition-colors"
+              title="View execution details"
+            >
+              {getIcon("activity", "w-4 h-4")}
+            </button>
+            <button
+              onClick={executeWorkflow}
+              disabled={isExecuting}
+              className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                isExecuting
+                  ? "bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed"
+                  : "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90"
+              }`}
+            >
+              {isExecuting ? (
+                <div className="flex items-center">
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Running...
+                </div>
+              ) : (
+                "Run"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex-1 flex overflow-hidden">
+        {/* LEFT SIDEBAR - Node Library */}
+        <div
+          className={`
+          bg-[var(--card)] border-r border-[var(--border)] transition-colors duration-200 flex flex-col
+          ${sidebarOpen ? "w-80" : "w-0 overflow-hidden"}
+        `}
+        >
+          <div className="flex-1 overflow-y-auto px-6 pb-4 pl-6 pt-4 custom-scrollbar">
+            <div className="space-y-6">
+              {/* Triggers Section */}
+              <div>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                      Triggers
+                    </h3>
+                    <button
+                      onClick={() => setSidebarOpen(false)}
+                      className="p-1 hover:bg-[var(--muted)] rounded"
+                    >
+                      {getIcon("x", "w-4 h-4", "text-[var(--foreground)]")}
+                    </button>
+                  </div>
+                  {getTriggerIntegrations().map((integration, index) => (
+                    <div
+                      key={`trigger-${index}`}
+                      className={`p-3 border rounded-lg cursor-move hover:shadow-sm transition-all group bg-[var(--card)] ${
+                        integration.borderClass ||
+                        "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                      draggable
+                      onDragStart={(e) =>
+                        onDragStart(
+                          e,
+                          integration.category,
+                          integration.name,
+                          integration.id,
+                          integration.icon,
+                          integration.description,
+                          integration.colorClass,
+                          integration.borderClass,
+                          integration.selectedBorderClass
+                        )
+                      }
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          {renderSidebarIcon(integration.icon, integration)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-[var(--foreground)] text-sm leading-snug">
+                            {integration.name}
+                          </h3>
+                          <p className="text-xs text-[var(--muted-foreground)] mt-1 leading-relaxed">
+                            {integration.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Actions Section */}
+              <div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
+                    Actions
+                  </h3>
+                  {getActionIntegrations().map((integration, index) => (
+                    <div
+                      key={`action-${index}`}
+                      className={`p-3 border rounded-lg cursor-move hover:shadow-sm transition-all group bg-[var(--card)] ${
+                        integration.borderClass ||
+                        "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                      draggable
+                      onDragStart={(e) =>
+                        onDragStart(
+                          e,
+                          integration.category,
+                          integration.name,
+                          integration.id,
+                          integration.icon,
+                          integration.description,
+                          integration.colorClass,
+                          integration.borderClass,
+                          integration.selectedBorderClass
+                        )
+                      }
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          {renderSidebarIcon(integration.icon, integration)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-[var(--foreground)] text-sm leading-snug">
+                            {integration.name}
+                          </h3>
+                          <p className="text-xs text-[var(--muted-foreground)] mt-1 leading-relaxed">
+                            {integration.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Logic Section */}
+              <div>
+                <div className="space-y-2">
+                  <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
+                    Logic
+                  </h3>
+                  {getLogicIntegrations().map((integration, index) => (
+                    <div
+                      key={`logic-${index}`}
+                      className={`p-3 border rounded-lg cursor-move hover:shadow-sm transition-all group bg-[var(--card)] ${
+                        integration.borderClass ||
+                        "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                      }`}
+                      draggable
+                      onDragStart={(e) =>
+                        onDragStart(
+                          e,
+                          integration.category,
+                          integration.name,
+                          integration.id,
+                          integration.icon,
+                          integration.description,
+                          integration.colorClass,
+                          integration.borderClass,
+                          integration.selectedBorderClass
+                        )
+                      }
+                    >
+                      <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0">
+                          {renderSidebarIcon(integration.icon, integration)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h3 className="font-medium text-[var(--foreground)] text-sm leading-snug">
+                            {integration.name}
+                          </h3>
+                          <p className="text-xs text-[var(--muted-foreground)] mt-1 leading-relaxed">
+                            {integration.description}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* MAIN CONTENT AREA */}
+        <div className="flex-1 relative">
+          {!sidebarOpen && (
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="absolute top-6 left-6 z-10 p-3 bg-[var(--primary)] rounded-xl shadow-lg hover:bg-[var(--primary)]/90 transition-colors"
+            >
+              {getIcon("plus", "w-6 h-6", "text-[var(--primary-foreground)]")}
+            </button>
+          )}
+          <div className="relative w-full h-full">
+            <ReactFlow
+              nodes={nodes}
+              edges={edges}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              onNodeClick={onNodeClick}
+              onSelectionChange={onSelectionChange}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+              nodeTypes={nodeTypes}
+              defaultViewport={{ x: 0, y: 0, zoom: 0.8 }}
+              className="bg-[var(--background)]"
+              connectionLineStyle={connectionLineStyle}
+              defaultEdgeOptions={{
+                style: { stroke: "#d1d5db", strokeWidth: 2 },
+                animated: false,
+              }}
+              panOnDrag
+              elementsSelectable
+              nodesConnectable
+              nodesDraggable
+              proOptions={{ hideAttribution: true }}
+            >
+              <Background
+                color={theme === "dark" ? "#6b7280" : "#d1d5db"}
+                gap={20}
+                size={theme === "dark" ? 1.5 : 2}
+                variant={BackgroundVariant.Dots}
+              />
+            </ReactFlow>
+          </div>
+        </div>
+
+        {/* RIGHT SIDEBAR - Configuration or Execution Panel */}
+        {(selectedNode || showExecutionPanel) && (
+          <div className="w-80 bg-[var(--card)] border-l border-[var(--border)] overflow-y-auto">
+            <div className="p-6">
+              {showExecutionPanel ? (
+                /* Execution Panel */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                      Execution Details
+                    </h2>
+                    <button
+                      onClick={() => setShowExecutionPanel(false)}
+                      className="p-2 text-[var(--muted-foreground)] hover:bg-[var(--muted)] rounded-lg transition-colors"
+                    >
+                      {getIcon("x", "w-4 h-4")}
+                    </button>
+                  </div>
+
+                  <div
+                    className={`px-2 py-1 rounded text-xs font-medium mb-4 ${
+                      executionState.status === "running"
+                        ? "bg-blue-100 text-blue-800"
+                        : executionState.status === "completed"
+                        ? "bg-green-100 text-green-800"
+                        : executionState.status === "failed"
+                        ? "bg-red-100 text-red-800"
+                        : "bg-gray-100 text-gray-800"
+                    }`}
+                  >
+                    {executionState.status}
+                  </div>
+
+                  {/* Variables */}
+                  <div>
+                    <h3 className="text-sm font-medium text-[var(--foreground)] mb-2">
+                      Variables
+                    </h3>
+                    <div className="bg-[var(--muted)]/50 rounded-lg p-3 text-xs">
+                      <pre className="whitespace-pre-wrap text-[var(--muted-foreground)]">
+                        {Object.keys(executionState.context.variables).length >
+                        0
+                          ? JSON.stringify(
+                              executionState.context.variables,
+                              null,
+                              2
+                            )
+                          : "No variables set"}
+                      </pre>
+                    </div>
+                  </div>
+
+                  {/* Node Outputs */}
+                  <div>
+                    <h3 className="text-sm font-medium text-[var(--foreground)] mb-2">
+                      Node Outputs
+                    </h3>
+                    <div className="space-y-2 max-h-64 overflow-y-auto">
+                      {Object.entries(executionState.context.nodeOutputs).map(
+                        ([nodeId, output]) => (
+                          <div
+                            key={nodeId}
+                            className="bg-[var(--muted)]/50 rounded-lg p-3"
+                          >
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs font-medium text-[var(--foreground)]">
+                                {nodeId}
+                              </span>
+                              {executionState.currentNode === nodeId && (
+                                <Loader2 className="w-3 h-3 animate-spin text-blue-500" />
+                              )}
+                            </div>
+                            <pre className="text-xs text-[var(--muted-foreground)] whitespace-pre-wrap">
+                              {JSON.stringify(output, null, 2)}
+                            </pre>
+                          </div>
+                        )
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                selectedNode && (
+                  <>
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-[var(--muted)] rounded-lg">
+                          {getIcon(
+                            (selectedNode.data as unknown as NodeData).icon ||
+                              "circle",
+                            "w-5 h-5",
+                            "text-[var(--muted-foreground)]"
+                          )}
+                        </div>
+                        <div>
+                          <h2 className="text-lg font-semibold text-[var(--foreground)]">
+                            {(selectedNode.data as unknown as NodeData).label}
+                          </h2>
+                          <p className="text-sm text-[var(--muted-foreground)] capitalize">
+                            {selectedNode.type} step
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={deleteSelectedNode}
+                        className="p-2 text-[var(--muted-foreground)] hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
+                      >
+                        {getIcon("trash", "w-4 h-4")}
+                      </button>
+                    </div>
+
+                    {/* Output Section */}
+                    {(selectedNode.data as unknown as NodeData)
+                      .executionResult && (
+                      <div className="mb-6">
+                        <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
+                          Output
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {Object.keys(
+                            ((selectedNode.data as unknown as NodeData)
+                              .executionResult?.data as Record<
+                              string,
+                              unknown
+                            >) || {}
+                          ).map((fieldKey) => (
+                            <button
+                              key={fieldKey}
+                              onClick={() =>
+                                copyDataFieldExpressionWithFeedback(
+                                  selectedNode.id,
+                                  fieldKey
+                                )
+                              }
+                              className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 cursor-pointer shadow-sm ${
+                                copiedField === fieldKey
+                                  ? "bg-green-100 border-green-300 text-green-800 dark:bg-green-900/20 dark:border-green-700 dark:text-green-400"
+                                  : "text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] hover:bg-[var(--muted)] hover:border-[var(--ring)]"
+                              }`}
+                              title={
+                                copiedField === fieldKey
+                                  ? "Copied!"
+                                  : "Click to copy reference"
+                              }
+                            >
+                              {copiedField === fieldKey ? (
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="currentColor"
+                                  viewBox="0 0 20 20"
+                                >
+                                  <path
+                                    fillRule="evenodd"
+                                    d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                                    clipRule="evenodd"
+                                  />
+                                </svg>
+                              ) : (
+                                <CopyIcon className="w-3 h-3 text-[var(--muted-foreground)]" />
+                              )}
+                              {fieldKey}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-6">
+                      <div className="space-y-4">
+                        {(() => {
+                          const nodeData =
+                            selectedNode.data as unknown as NodeData;
+                          const integrationId = nodeData.subtype;
+                          const integration = getIntegration(
+                            integrationId || ""
+                          );
+
+                          if (!integration) {
+                            return (
+                              <div className="text-red-500 text-sm">
+                                Integration not found: {integrationId}
+                              </div>
+                            );
+                          }
+
+                          return integration.schema.fields.map((field) => (
+                            <div key={field.key} className="space-y-3">
+                              <div>
+                                <label className="block text-sm font-medium text-[var(--foreground)] select-none">
+                                  {field.label}
+                                  {field.required && (
+                                    <span className="text-red-500 ml-1">*</span>
+                                  )}
+                                </label>
+                              </div>
+
+                              {field.type === "select" ? (
+                                <select
+                                  className="w-full px-4 py-3 border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--ring)] focus:ring-1 focus:ring-[var(--ring)]/10 transition-all bg-[var(--muted)]/50"
+                                  value={
+                                    ((selectedNode.data as unknown as NodeData)
+                                      .config?.[field.key] as string) || ""
+                                  }
+                                  onChange={(e) => {
+                                    const currentConfig =
+                                      (selectedNode.data as unknown as NodeData)
+                                        .config || {};
+                                    updateNodeConfig(selectedNode.id, {
+                                      ...currentConfig,
+                                      [field.key]: e.target.value,
+                                    });
+                                  }}
+                                >
+                                  <option value="">Select {field.label}</option>
+                                  {Array.isArray(field.options) &&
+                                    field.options.map((option) => (
+                                      <option
+                                        key={option.value}
+                                        value={option.value}
+                                      >
+                                        {option.label}
+                                      </option>
+                                    ))}
+                                </select>
+                              ) : field.type === "textarea" ? (
+                                <textarea
+                                  className="w-full px-4 py-3 border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--ring)] focus:ring-1 focus:ring-[var(--ring)]/10 transition-all bg-[var(--muted)]/50 resize-none"
+                                  rows={3}
+                                  placeholder={field.placeholder}
+                                  value={
+                                    ((selectedNode.data as unknown as NodeData)
+                                      .config?.[field.key] as string) || ""
+                                  }
+                                  onChange={(e) => {
+                                    const currentConfig =
+                                      (selectedNode.data as unknown as NodeData)
+                                        .config || {};
+                                    updateNodeConfig(selectedNode.id, {
+                                      ...currentConfig,
+                                      [field.key]: e.target.value,
+                                    });
+                                  }}
+                                />
+                              ) : (
+                                <input
+                                  type={
+                                    field.type === "number"
+                                      ? "number"
+                                      : field.type === "email"
+                                      ? "email"
+                                      : field.type === "url"
+                                      ? "url"
+                                      : "text"
+                                  }
+                                  className="w-full px-4 py-3 border border-[var(--border)] rounded-xl text-sm focus:outline-none focus:border-[var(--ring)] focus:ring-1 focus:ring-[var(--ring)]/10 transition-all bg-[var(--muted)]/50"
+                                  placeholder={field.placeholder}
+                                  value={
+                                    ((selectedNode.data as unknown as NodeData)
+                                      .config?.[field.key] as string) || ""
+                                  }
+                                  onChange={(e) => {
+                                    const currentConfig =
+                                      (selectedNode.data as unknown as NodeData)
+                                        .config || {};
+                                    updateNodeConfig(selectedNode.id, {
+                                      ...currentConfig,
+                                      [field.key]: e.target.value,
+                                    });
+                                  }}
+                                />
+                              )}
+
+                              {field.supportExpressions && (
+                                <p className="text-xs text-[var(--muted-foreground)] mt-1">
+                                  Use {"{{$node.NodeId.data.field}}"} to
+                                  reference previous nodes or{" "}
+                                  {"{{$vars.variableName}}"} for variables
+                                </p>
+                              )}
+                            </div>
+                          ));
+                        })()}
+                      </div>
+
+                      {/* Available Data Section */}
+                      <div className="space-y-4 border-t border-[var(--border)] pt-6">
+                        <h3 className="text-sm font-semibold text-[var(--foreground)]">
+                          Available Data
+                        </h3>
+
+                        {/* Previous Node Outputs */}
+                        {Object.keys(executionState.context.nodeOutputs)
+                          .length > 0 && (
+                          <div>
+                            <h4 className="text-xs font-medium text-[var(--muted-foreground)] mb-2">
+                              From Previous Nodes:
+                            </h4>
+                            <div className="space-y-2 max-h-32 overflow-y-auto">
+                              {Object.entries(
+                                executionState.context.nodeOutputs
+                              ).map(([nodeId, output]) => (
+                                <div
+                                  key={nodeId}
+                                  className="bg-[var(--muted)]/50 rounded p-2"
+                                >
+                                  <button
+                                    onClick={() =>
+                                      copyExpression(
+                                        `{{$node.${nodeId}.data.FIELD}}`
+                                      )
+                                    }
+                                    className="text-xs font-mono text-[var(--foreground)] hover:text-[var(--primary)] cursor-pointer mb-1 block w-full text-left"
+                                    title="Click to copy"
+                                  >
+                                    {`{{$node.${nodeId}.data.FIELD}}`}
+                                  </button>
+                                  <div className="text-xs text-[var(--muted-foreground)]">
+                                    Available fields:{" "}
+                                    {Object.keys(
+                                      ((output as Record<string, unknown>)
+                                        ?.data as Record<string, unknown>) || {}
+                                    ).join(", ") || "none"}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Variables */}
+                        {Object.keys(executionState.context.variables).length >
+                          0 && (
+                          <div>
+                            <h4 className="text-xs font-medium text-[var(--muted-foreground)] mb-2">
+                              Variables:
+                            </h4>
+                            <div className="bg-[var(--muted)]/50 rounded p-2">
+                              {Object.keys(
+                                executionState.context.variables
+                              ).map((varName) => (
+                                <button
+                                  key={varName}
+                                  onClick={() =>
+                                    copyExpression(`{{$vars.${varName}}}`)
+                                  }
+                                  className="text-xs font-mono text-[var(--foreground)] hover:text-[var(--primary)] cursor-pointer block w-full text-left"
+                                  title="Click to copy"
+                                >
+                                  {`{{$vars.${varName}}}`}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Helpful hint when nothing is available */}
+                        {Object.keys(executionState.context.nodeOutputs)
+                          .length === 0 &&
+                          Object.keys(executionState.context.variables)
+                            .length === 0 && (
+                            <div className="text-xs text-[var(--muted-foreground)] italic">
+                              Run previous nodes to see available data
+                            </div>
+                          )}
+                      </div>
+                    </div>
+                  </>
+                )
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Logs Panel */}
+        <LogsPanel
+          isOpen={showLogsPanel}
+          onClose={() => setShowLogsPanel(false)}
+          workflowId={undefined}
+          executionId={executionState.context.executionId || undefined}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function App() {
+  useEffect(() => {
+    fetch("/api/start-background", { method: "POST" }).catch(console.error);
+  }, []);
+
+  return (
+    <ReactFlowProvider>
+      <WorkflowEditor />
+    </ReactFlowProvider>
+  );
+}
+
+----- Content End -----
+
+===== File: hooks/useThemeToggle.tsx =====
+Type: .tsx
+----- Content Start -----
+"use client";
+
+import { useTheme } from "next-themes";
+import { useEffect, useState } from "react";
+
+export function useThemeToggle() {
+  const { theme, setTheme, resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  // Prevent hydration mismatch by only rendering after mount
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Update theme-color meta tag when theme changes
+  useEffect(() => {
+    if (!mounted) return;
+
+    const updateThemeColor = () => {
+      const currentTheme = resolvedTheme || theme;
+      const themeColor = currentTheme === "dark" ? "#1e1e1e" : "#f5f5f5";
+
+      // Remove existing theme-color meta tags
+      const existingMeta = document.querySelectorAll(
+        'meta[name="theme-color"]'
+      );
+      existingMeta.forEach((meta) => meta.remove());
+
+      // Add new theme-color meta tag
+      const metaTag = document.createElement("meta");
+      metaTag.name = "theme-color";
+      metaTag.content = themeColor;
+      document.head.appendChild(metaTag);
+    };
+
+    if (theme) {
+      updateThemeColor();
+    }
+  }, [theme, resolvedTheme, mounted]);
+
+  const toggleTheme = () => {
+    setTheme(theme === "dark" ? "light" : "dark");
+  };
+
+  return {
+    theme: mounted ? theme : "dark", // Return default theme during SSR
+    setTheme,
+    resolvedTheme: mounted ? resolvedTheme : "dark", // Return default theme during SSR
+    toggleTheme,
+    mounted,
+  };
+}
+
+----- Content End -----
+
+===== File: hooks/useEditor.tsx =====
+Type: .tsx
+----- Content Start -----
+import { useState, useCallback } from "react";
+import { Node, Edge } from "@xyflow/react";
+import { integrationRegistry } from "../lib/integrations";
+
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
+
+interface WorkflowContext {
+  variables: Record<string, unknown>;
+  nodeOutputs: Record<string, unknown>;
+  executionId: string;
+  userId?: string;
+}
+
+interface ExecutionState {
+  currentNode: string | null;
+  completedNodes: Set<string>;
+  context: WorkflowContext;
+  status: "idle" | "running" | "completed" | "failed";
+}
+
+interface ExecutionStep {
+  node_id: string;
+  status: string;
+  completed_at?: string;
+  result?: {
+    success: boolean;
+    data?: Record<string, unknown>;
+    metadata?: {
+      nodeType: string;
+      subtype: string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  };
+}
+
+interface WorkflowDefinition {
+  id: string;
+  name: string;
+  nodes: Node[];
+  edges: Edge[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ============================================
+// EXPRESSION PARSER (Enhanced)
+// ============================================
+
+const parseExpression = (
+  expression: string,
+  context: WorkflowContext
+): unknown => {
+  if (!expression || typeof expression !== "string") return expression;
+
+  return expression.replace(/\{\{([^}]+)\}\}/g, (match, expr) => {
+    try {
+      const trimmed = expr.trim();
+
+      if (trimmed.startsWith("$node.")) {
+        const parts = trimmed.split(".");
+        if (parts.length >= 3) {
+          const nodeId = parts[1];
+          const path = parts.slice(2).join(".");
+          const nodeOutput = context.nodeOutputs[nodeId];
+
+          if (nodeOutput) {
+            const value = getNestedValue(nodeOutput, path);
+            return value !== undefined ? String(value) : "";
+          }
+        }
+      }
+
+      if (trimmed.startsWith("$vars.")) {
+        const varName = trimmed.substring(6);
+        const value = context.variables[varName];
+        return value !== undefined ? String(value) : "";
+      }
+
+      return match;
+    } catch (error) {
+      console.error("Expression parse error:", error);
+      return match;
+    }
+  });
+};
+
+const getNestedValue = (obj: unknown, path: string): unknown => {
+  return path.split(".").reduce((current, key) => {
+    if (current && typeof current === "object" && key in current) {
+      return (current as Record<string, unknown>)[key];
+    }
+    return undefined;
+  }, obj);
+};
+
+// ============================================
+// USE EDITOR HOOK
+// ============================================
+
+export const useEditor = () => {
+  const registry = integrationRegistry;
+  const [executionState, setExecutionState] = useState<ExecutionState>({
+    currentNode: null,
+    completedNodes: new Set(),
+    context: {
+      variables: {},
+      nodeOutputs: {},
+      executionId: "",
+    },
+    status: "idle",
+  });
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(
+    null
+  );
+
+  // Load workflow from database
+  const loadWorkflow =
+    useCallback(async (): Promise<WorkflowDefinition | null> => {
+      try {
+        const response = await fetch("/api/workflows");
+        if (!response.ok) throw new Error("Failed to load workflows");
+
+        const workflows = await response.json();
+        if (workflows.length > 0) {
+          const workflow = workflows[0]; // Get latest workflow
+          setCurrentWorkflowId(workflow.id);
+          return {
+            id: workflow.id,
+            name: workflow.name,
+            nodes: workflow.nodes,
+            edges: workflow.edges,
+            createdAt: workflow.createdAt || new Date().toISOString(),
+            updatedAt: workflow.updatedAt || new Date().toISOString(),
+          };
+        }
+        return null;
+      } catch (error) {
+        console.error("Load failed:", error);
+        return null;
+      }
+    }, []);
+
+  // Save workflow to database
+  const saveWorkflow = useCallback(
+    async (
+      nodes: Node[],
+      edges: Edge[],
+      name: string = "Untitled Workflow"
+    ) => {
+      try {
+        const method = currentWorkflowId ? "PUT" : "POST";
+        const url = currentWorkflowId
+          ? `/api/workflows/${currentWorkflowId}`
+          : "/api/workflows";
+
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, nodes, edges }),
+        });
+
+        if (!response.ok) throw new Error("Failed to save workflow");
+
+        const workflow = await response.json();
+        setCurrentWorkflowId(workflow.id);
+
+        console.log("Workflow saved:", workflow);
+        return { success: true, id: workflow.id };
+      } catch (error) {
+        console.error("Save failed:", error);
+        throw error;
+      }
+    },
+    [currentWorkflowId]
+  );
+
+  // Execute workflow in background
+  const executeWorkflow = useCallback(
+    async (
+      nodes: Node[],
+      edges: Edge[],
+      onNodeStatusChange: (
+        nodeId: string,
+        status: "idle" | "running" | "success" | "error",
+        lastRun?: string,
+        executionResult?: Record<string, unknown>
+      ) => void
+    ) => {
+      if (isExecuting || !currentWorkflowId) return;
+
+      setIsExecuting(true);
+
+      try {
+        // Start background execution
+        const response = await fetch(
+          `/api/workflows/${currentWorkflowId}/execute`,
+          {
+            method: "POST",
+          }
+        );
+
+        if (!response.ok) throw new Error("Failed to start execution");
+
+        const { executionId } = await response.json();
+
+        setExecutionState((prev) => ({
+          ...prev,
+          status: "running",
+          context: { ...prev.context, executionId },
+        }));
+
+        // Poll for execution status
+        const pollInterval = setInterval(async () => {
+          try {
+            const statusResponse = await fetch(
+              `/api/executions/${executionId}/status`
+            );
+            const status = await statusResponse.json();
+
+            if (status.status === "completed" || status.status === "failed") {
+              clearInterval(pollInterval);
+              setExecutionState((prev) => ({
+                ...prev,
+                status: status.status === "completed" ? "completed" : "failed",
+              }));
+              setIsExecuting(false);
+
+              // Update node statuses based on execution steps
+              if (status.steps) {
+                status.steps.forEach((step: ExecutionStep) => {
+                  // Handle set_variable step results - update context immediately
+                  if (
+                    step.result?.metadata?.subtype === "set_variable" &&
+                    step.result.data
+                  ) {
+                    const { variableName, value } = step.result.data as {
+                      variableName: string;
+                      value: unknown;
+                    };
+                    setExecutionState((prev) => ({
+                      ...prev,
+                      context: {
+                        ...prev.context,
+                        variables: {
+                          ...prev.context.variables,
+                          [variableName]: value,
+                        },
+                      },
+                    }));
+                  }
+
+                  onNodeStatusChange(
+                    step.node_id,
+                    step.status === "completed" ? "success" : "error",
+                    step.completed_at
+                      ? new Date(step.completed_at).toLocaleTimeString()
+                      : undefined,
+                    step.result
+                  );
+                });
+              }
+            }
+          } catch (error) {
+            console.error("Polling error:", error);
+            clearInterval(pollInterval);
+            setIsExecuting(false);
+          }
+        }, 2000); // Poll every 2 seconds
+      } catch (error) {
+        console.error("Execution failed:", error);
+        setIsExecuting(false);
+        setExecutionState((prev) => ({ ...prev, status: "failed" }));
+      }
+    },
+    [isExecuting, currentWorkflowId]
+  );
+
+  return {
+    // State
+    executionState,
+    isExecuting,
+    registry,
+
+    // Actions
+    saveWorkflow,
+    loadWorkflow,
+    executeWorkflow,
+
+    // Utilities
+    parseExpression,
+  };
+};
+
+----- Content End -----
+
+===== File: hooks/useIcons.tsx =====
+Type: .tsx
+----- Content Start -----
+import {
+  Home,
+  Check,
+  X,
+  Plus,
+  Trash2,
+  Zap,
+  Circle,
+  Diamond,
+  Link as LinkIcon,
+  Clock,
+  Mail,
+  Send,
+  Globe,
+  MessageSquare,
+  Database,
+  Search,
+  ArrowUpRight,
+  Brain,
+  Save,
+  Play,
+  Hand,
+  LayoutDashboard,
+  Grid3X3,
+  Command,
+  Activity,
+} from "lucide-react";
+
+// ============================================
+// ICON MANAGEMENT
+// ============================================
+
+export const getIcon = (
+  iconName: string,
+  size: string = "w-5 h-5",
+  className: string = "text-[var(--foreground)]"
+) => {
+  const iconClass = `${size} ${className}`;
+
+  switch (iconName) {
+    case "home":
+      return <Home className={iconClass} />;
+    case "check":
+      return <Check className={iconClass} />;
+    case "x":
+      return <X className={iconClass} />;
+    case "plus":
+      return <Plus className={iconClass} />;
+    case "trash":
+      return <Trash2 className={iconClass} />;
+    case "save":
+      return <Save className={iconClass} />;
+    case "play":
+      return <Play className={iconClass} />;
+    case "zap":
+      return <Zap className={iconClass} />;
+    case "circle":
+      return <Circle className={iconClass} />;
+    case "diamond":
+      return <Diamond className={iconClass} />;
+    case "brain":
+      return <Brain className={iconClass} />;
+    case "hand":
+      return <Hand className={iconClass} />;
+    case "link":
+      return <LinkIcon className={iconClass} />;
+    case "clock":
+      return <Clock className={iconClass} />;
+    case "mail":
+      return <Mail className={iconClass} />;
+    case "send":
+      return <Send className={iconClass} />;
+    case "globe":
+      return <Globe className={iconClass} />;
+    case "message-square":
+      return <MessageSquare className={iconClass} />;
+    case "database":
+      return <Database className={iconClass} />;
+    case "search":
+      return <Search className={iconClass} />;
+    case "arrow-up-right":
+      return <ArrowUpRight className={iconClass} />;
+    case "dashboard":
+      return <LayoutDashboard className={iconClass} />;
+    case "grid":
+      return <Grid3X3 className={iconClass} />;
+    case "command":
+      return <Command className={iconClass} />;
+    case "activity":
+      return <Activity className={iconClass} />;
+    default:
+      return <Circle className={iconClass} />;
+  }
+};
+
+----- Content End -----
+
+===== File: lib/integrations.ts =====
+Type: .ts
+----- Content Start -----
+// lib/integrations-server.ts
+// This is your integration registry that works in Node.js (no React)
+
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
+
+interface WorkflowContext {
+  variables: Record<string, unknown>;
+  nodeOutputs: Record<string, unknown>;
+  executionId: string;
+  userId?: string;
+}
+
+interface IntegrationSchema {
+  fields: SchemaField[];
+  required: string[];
+  dependencies?: Record<string, string[]>;
+}
+
+interface SchemaField {
+  key: string;
+  type: "text" | "textarea" | "select" | "number" | "boolean" | "email" | "url";
+  label: string;
+  placeholder?: string;
+  required?: boolean;
+  supportExpressions?: boolean;
+  options?:
+    | Array<{ label: string; value: string }>
+    | (() => Promise<Array<{ label: string; value: string }>>);
+  validation?: (value: unknown) => string | null;
+  dependsOn?: string;
+}
+
+interface IntegrationExecutor {
+  execute: (
+    config: Record<string, unknown>,
+    context: WorkflowContext
+  ) => Promise<ExecutionResult>;
+  validate?: (config: Record<string, unknown>) => ValidationResult;
+}
+
+interface ExecutionResult extends Record<string, unknown> {
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
+  metadata?: {
+    nodeType: string;
+    subtype: string;
+    executionTime?: number;
+    [key: string]: unknown;
+  };
+}
+
+interface ValidationResult {
+  valid: boolean;
+  errors: Record<string, string>;
+}
+
+interface Integration {
+  id: string;
+  name: string;
+  category: "trigger" | "action" | "logic";
+  description: string;
+  icon: string;
+  version: string;
+
+  // Visual styling
+  colorClass: string;
+  borderClass: string;
+  selectedBorderClass: string;
+
+  // Integration logic
+  schema: IntegrationSchema;
+  executor: IntegrationExecutor;
+
+  // Optional features
+  auth?: {
+    type: "oauth2" | "api_key" | "basic" | "none";
+    required: boolean;
+  };
+
+  // For triggers only
+  hasInputHandle?: boolean;
+}
+
+// ============================================
+// INTEGRATION FACTORY FUNCTION
+// ============================================
+
+const createIntegration = (config: Integration): Integration => config;
+
+// ============================================
+// TRIGGER INTEGRATIONS
+// ============================================
+
+const TRIGGER_INTEGRATIONS = [
+  createIntegration({
+    id: "manual_trigger",
+    name: "Manual",
+    category: "trigger",
+    description: "Trigger manually",
+    icon: "hand",
+    version: "1.0.0",
+
+    colorClass: "text-amber-600 dark:text-amber-400",
+    borderClass:
+      "border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700",
+    selectedBorderClass:
+      "border-amber-600 dark:border-amber-400 shadow-lg ring-1 ring-amber-500/20 dark:ring-amber-400/20",
+
+    hasInputHandle: false,
+
+    schema: {
+      fields: [
+        {
+          key: "triggerName",
+          type: "text",
+          label: "Trigger Name",
+          placeholder: "My Manual Trigger",
+          required: false,
+        },
+      ],
+      required: [],
+    },
+
+    executor: {
+      async execute(config) {
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            triggered: true,
+            timestamp,
+            triggerName: (config.triggerName as string) || "Manual Trigger",
+          },
+          metadata: { nodeType: "trigger", subtype: "manual_trigger" },
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "webhook_trigger",
+    name: "Webhook",
+    category: "trigger",
+    description: "Receive HTTP requests",
+    icon: "link",
+    version: "1.0.0",
+
+    colorClass: "text-amber-600 dark:text-amber-400",
+    borderClass:
+      "border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700",
+    selectedBorderClass:
+      "border-amber-600 dark:border-amber-400 shadow-lg ring-1 ring-amber-500/20 dark:ring-amber-400/20",
+
+    hasInputHandle: false,
+
+    schema: {
+      fields: [
+        {
+          key: "url",
+          type: "url",
+          label: "Webhook URL",
+          placeholder: "https://...",
+          required: true,
+        },
+        {
+          key: "method",
+          type: "select",
+          label: "HTTP Method",
+          required: true,
+          options: [
+            { label: "POST", value: "POST" },
+            { label: "GET", value: "GET" },
+            { label: "PUT", value: "PUT" },
+          ],
+        },
+      ],
+      required: ["url", "method"],
+    },
+
+    executor: {
+      async execute() {
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "user-agent": "GitHub-Hookshot/abc123",
+            },
+            body: {
+              event: "push",
+              repository: { name: "my-app", owner: "johndoe" },
+              commits: [
+                { message: "Fix user login bug", author: "Jane Smith" },
+              ],
+            },
+            timestamp,
+          },
+          metadata: { nodeType: "trigger", subtype: "webhook_trigger" },
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "schedule_trigger",
+    name: "Schedule",
+    category: "trigger",
+    description: "Run on a schedule",
+    icon: "clock",
+    version: "1.0.0",
+
+    colorClass: "text-amber-600 dark:text-amber-400",
+    borderClass:
+      "border-amber-200 dark:border-amber-800 hover:border-amber-300 dark:hover:border-amber-700",
+    selectedBorderClass:
+      "border-amber-600 dark:border-amber-400 shadow-lg ring-1 ring-amber-500/20 dark:ring-amber-400/20",
+
+    hasInputHandle: false,
+
+    schema: {
+      fields: [
+        {
+          key: "schedule",
+          type: "select",
+          label: "Schedule",
+          required: true,
+          options: [
+            { label: "Every minute", value: "* * * * *" },
+            { label: "Every hour", value: "0 * * * *" },
+            { label: "Every day", value: "0 0 * * *" },
+            { label: "Every week", value: "0 0 * * 0" },
+          ],
+        },
+        {
+          key: "timezone",
+          type: "select",
+          label: "Timezone",
+          required: false,
+          options: [
+            { label: "UTC", value: "UTC" },
+            { label: "America/New_York", value: "America/New_York" },
+            { label: "America/Los_Angeles", value: "America/Los_Angeles" },
+          ],
+        },
+      ],
+      required: ["schedule"],
+    },
+
+    executor: {
+      async execute(config) {
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            schedule: config.schedule as string,
+            timezone: (config.timezone as string) || "UTC",
+            timestamp,
+          },
+          metadata: { nodeType: "trigger", subtype: "schedule_trigger" },
+        };
+      },
+    },
+  }),
+];
+
+// ============================================
+// ACTION INTEGRATIONS
+// ============================================
+
+const ACTION_INTEGRATIONS = [
+  createIntegration({
+    id: "slack_send_message",
+    name: "Send Slack Message",
+    category: "action",
+    description: "Send a message to a Slack channel",
+    icon: "message-square",
+    version: "1.0.0",
+
+    colorClass: "text-sky-600 dark:text-sky-400",
+    borderClass:
+      "border-sky-200 dark:border-sky-800 hover:border-sky-300 dark:hover:border-sky-700",
+    selectedBorderClass:
+      "border-sky-600 dark:border-sky-400 shadow-lg ring-1 ring-sky-500/20 dark:ring-sky-400/20",
+
+    auth: {
+      type: "oauth2",
+      required: true,
+    },
+
+    schema: {
+      fields: [
+        {
+          key: "channel",
+          type: "select",
+          label: "Channel",
+          placeholder: "#general",
+          required: true,
+          options: [
+            { label: "#general", value: "general" },
+            { label: "#random", value: "random" },
+            { label: "#dev", value: "dev" },
+          ],
+        },
+        {
+          key: "message",
+          type: "textarea",
+          label: "Message",
+          placeholder:
+            "New deployment by {{$node.webhook-1.data.commits.0.author}}",
+          required: true,
+          supportExpressions: true,
+        },
+        {
+          key: "username",
+          type: "text",
+          label: "Bot Username",
+          placeholder: "WorkflowBot",
+          required: false,
+        },
+      ],
+      required: ["channel", "message"],
+    },
+
+    executor: {
+      async execute(config) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            messageId: "1234567890.123456",
+            channel: config.channel as string,
+            message: config.message as string,
+            timestamp,
+            user: "U123ABCDEF",
+            permalink:
+              "https://workspace.slack.com/archives/C123/p1609459200123456",
+          },
+          metadata: { nodeType: "action", subtype: "slack_send_message" },
+        };
+      },
+
+      validate(config) {
+        const errors: Record<string, string> = {};
+
+        if (!config.channel) errors.channel = "Channel is required";
+        if (!config.message) errors.message = "Message is required";
+
+        return {
+          valid: Object.keys(errors).length === 0,
+          errors,
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "set_variable",
+    name: "Set Variable",
+    category: "action",
+    description: "Store data in a variable",
+    icon: "database",
+    version: "1.0.0",
+
+    colorClass: "text-sky-600 dark:text-sky-400",
+    borderClass:
+      "border-sky-200 dark:border-sky-800 hover:border-sky-300 dark:hover:border-sky-700",
+    selectedBorderClass:
+      "border-sky-600 dark:border-sky-400 shadow-lg ring-1 ring-sky-500/20 dark:ring-sky-400/20",
+
+    schema: {
+      fields: [
+        {
+          key: "variableName",
+          type: "text",
+          label: "Variable Name",
+          placeholder: "myVariable",
+          required: true,
+          validation: (value: unknown) => {
+            if (
+              typeof value !== "string" ||
+              !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)
+            ) {
+              return "Variable name must start with letter or underscore and contain only letters, numbers, and underscores";
+            }
+            return null;
+          },
+        },
+        {
+          key: "value",
+          type: "textarea",
+          label: "Value",
+          placeholder: "Enter value or reference data...",
+          required: true,
+          supportExpressions: true,
+        },
+      ],
+      required: ["variableName", "value"],
+    },
+
+    executor: {
+      async execute(config, context) {
+        if (config.variableName) {
+          context.variables[config.variableName as string] = config.value;
+        }
+
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            variableName: config.variableName as string,
+            value: config.value,
+            timestamp,
+          },
+          metadata: { nodeType: "action", subtype: "set_variable" },
+        };
+      },
+
+      validate(config) {
+        const errors: Record<string, string> = {};
+
+        if (!config.variableName) {
+          errors.variableName = "Variable name is required";
+        } else if (
+          !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(config.variableName as string)
+        ) {
+          errors.variableName = "Invalid variable name format";
+        }
+
+        if (!config.value) {
+          errors.value = "Value is required";
+        }
+
+        return {
+          valid: Object.keys(errors).length === 0,
+          errors,
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "email_send",
+    name: "Send Email",
+    category: "action",
+    description: "Send an email message",
+    icon: "mail",
+    version: "1.0.0",
+
+    colorClass: "text-sky-600 dark:text-sky-400",
+    borderClass:
+      "border-sky-200 dark:border-sky-800 hover:border-sky-300 dark:hover:border-sky-700",
+    selectedBorderClass:
+      "border-sky-600 dark:border-sky-400 shadow-lg ring-1 ring-sky-500/20 dark:ring-sky-400/20",
+
+    auth: {
+      type: "api_key",
+      required: true,
+    },
+
+    schema: {
+      fields: [
+        {
+          key: "to",
+          type: "email",
+          label: "To Email",
+          placeholder: "user@example.com",
+          required: true,
+        },
+        {
+          key: "subject",
+          type: "text",
+          label: "Subject",
+          placeholder: "Email subject",
+          required: true,
+          supportExpressions: true,
+        },
+        {
+          key: "body",
+          type: "textarea",
+          label: "Body",
+          placeholder:
+            "Hello {{$node.webhook-1.data.user.name}}, your order {{$node.webhook-1.data.order.id}} has been shipped!",
+          required: true,
+          supportExpressions: true,
+        },
+      ],
+      required: ["to", "subject", "body"],
+    },
+
+    executor: {
+      async execute(config) {
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            messageId: "<20241201120000.abc123@smtp.gmail.com>",
+            to: config.to as string,
+            subject: config.subject as string,
+            status: "sent",
+            deliveryTime: "2.3s",
+            provider: "SendGrid",
+            timestamp,
+          },
+          metadata: { nodeType: "action", subtype: "email_send" },
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "api_request",
+    name: "API Request",
+    category: "action",
+    description: "Make an HTTP API request",
+    icon: "globe",
+    version: "1.0.0",
+
+    colorClass: "text-sky-600 dark:text-sky-400",
+    borderClass:
+      "border-sky-200 dark:border-sky-800 hover:border-sky-300 dark:hover:border-sky-700",
+    selectedBorderClass:
+      "border-sky-600 dark:border-sky-400 shadow-lg ring-1 ring-sky-500/20 dark:ring-sky-400/20",
+
+    schema: {
+      fields: [
+        {
+          key: "url",
+          type: "url",
+          label: "API Endpoint",
+          placeholder: "https://api.example.com/endpoint",
+          required: true,
+        },
+        {
+          key: "method",
+          type: "select",
+          label: "HTTP Method",
+          required: true,
+          options: [
+            { label: "GET", value: "GET" },
+            { label: "POST", value: "POST" },
+            { label: "PUT", value: "PUT" },
+            { label: "DELETE", value: "DELETE" },
+          ],
+        },
+        {
+          key: "headers",
+          type: "textarea",
+          label: "Headers (JSON)",
+          placeholder: '{"Authorization": "Bearer token"}',
+          required: false,
+        },
+        {
+          key: "body",
+          type: "textarea",
+          label: "Request Body (JSON)",
+          placeholder:
+            '{"user_id": "{{$node.webhook-1.data.user.id}}", "status": "{{$node.webhook-1.data.status}}"}',
+          required: false,
+          supportExpressions: true,
+        },
+      ],
+      required: ["url", "method"],
+    },
+
+    executor: {
+      async execute() {
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            status: 200,
+            statusText: "OK",
+            headers: {
+              "content-type": "application/json",
+              "x-ratelimit-remaining": "4999",
+            },
+            response: {
+              id: 12345,
+              name: "John Doe",
+              email: "john@example.com",
+              created_at: "2024-12-01T10:30:00Z",
+            },
+            responseTime: "245ms",
+            timestamp,
+          },
+          metadata: { nodeType: "action", subtype: "api_request" },
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "delay",
+    name: "Delay",
+    category: "action",
+    description: "Wait for a specified amount of time",
+    icon: "clock",
+    version: "1.0.0",
+
+    colorClass: "text-sky-600 dark:text-sky-400",
+    borderClass:
+      "border-sky-200 dark:border-sky-800 hover:border-sky-300 dark:hover:border-sky-700",
+    selectedBorderClass:
+      "border-sky-600 dark:border-sky-400 shadow-lg ring-1 ring-sky-500/20 dark:ring-sky-400/20",
+
+    schema: {
+      fields: [
+        {
+          key: "amount",
+          type: "number",
+          label: "Delay Amount",
+          placeholder: "5",
+          required: true,
+        },
+        {
+          key: "unit",
+          type: "select",
+          label: "Time Unit",
+          required: true,
+          options: [
+            { label: "Seconds", value: "seconds" },
+            { label: "Minutes", value: "minutes" },
+            { label: "Hours", value: "hours" },
+          ],
+        },
+      ],
+      required: ["amount", "unit"],
+    },
+
+    executor: {
+      async execute(config) {
+        const amount = Number(config.amount) || 1;
+        const unit = config.unit as string;
+
+        let delayMs = amount * 1000; // default to seconds
+        if (unit === "minutes") delayMs = amount * 60 * 1000;
+        if (unit === "hours") delayMs = amount * 60 * 60 * 1000;
+
+        // For demo purposes, we'll just simulate the delay
+        await new Promise((resolve) =>
+          setTimeout(resolve, Math.min(delayMs, 2000))
+        );
+
+        const timestamp = new Date().toISOString();
+        return {
+          success: true,
+          data: {
+            delayAmount: amount,
+            delayUnit: unit,
+            actualDelayMs: delayMs,
+            timestamp,
+          },
+          metadata: { nodeType: "action", subtype: "delay" },
+        };
+      },
+    },
+  }),
+];
+
+// ============================================
+// LOGIC INTEGRATIONS
+// ============================================
+
+const LOGIC_INTEGRATIONS = [
+  createIntegration({
+    id: "filter_condition",
+    name: "Filter",
+    category: "logic",
+    description: "Filter data conditionally",
+    icon: "search",
+    version: "1.0.0",
+
+    colorClass: "text-violet-600 dark:text-violet-400",
+    borderClass:
+      "border-violet-200 dark:border-violet-800 hover:border-violet-300 dark:hover:border-violet-700",
+    selectedBorderClass:
+      "border-violet-600 dark:border-violet-400 shadow-lg ring-1 ring-violet-500/20 dark:ring-violet-400/20",
+
+    schema: {
+      fields: [
+        {
+          key: "field",
+          type: "text",
+          label: "Field to Check",
+          placeholder: "{{$node.webhook-1.data.status}}",
+          required: true,
+          supportExpressions: true,
+        },
+        {
+          key: "operator",
+          type: "select",
+          label: "Condition",
+          required: true,
+          options: [
+            { label: "equals", value: "equals" },
+            { label: "does not equal", value: "not_equals" },
+            { label: "contains", value: "contains" },
+            { label: "is greater than", value: "greater_than" },
+            { label: "is less than", value: "less_than" },
+          ],
+        },
+        {
+          key: "value",
+          type: "text",
+          label: "Comparison Value",
+          placeholder: "active",
+          required: true,
+          supportExpressions: true,
+        },
+      ],
+      required: ["field", "operator", "value"],
+    },
+
+    executor: {
+      async execute(config) {
+        const sampleValue = "active"; // Simulate checking a status field
+        const conditionMet = sampleValue === config.value;
+        const timestamp = new Date().toISOString();
+
+        return {
+          success: true,
+          data: {
+            field: config.field as string,
+            operator: config.operator as string,
+            expectedValue: config.value,
+            actualValue: sampleValue,
+            conditionMet,
+            matchedRecords: conditionMet ? 42 : 0,
+            timestamp,
+          },
+          metadata: { nodeType: "logic", subtype: "filter_condition" },
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "branch_condition",
+    name: "Branch",
+    category: "logic",
+    description: "Split workflow into multiple paths",
+    icon: "diamond",
+    version: "1.0.0",
+
+    colorClass: "text-violet-600 dark:text-violet-400",
+    borderClass:
+      "border-violet-200 dark:border-violet-800 hover:border-violet-300 dark:hover:border-violet-700",
+    selectedBorderClass:
+      "border-violet-600 dark:border-violet-400 shadow-lg ring-1 ring-violet-500/20 dark:ring-violet-400/20",
+
+    schema: {
+      fields: [
+        {
+          key: "condition",
+          type: "textarea",
+          label: "Condition Expression",
+          placeholder: "{{$node.trigger-1.data.status}} === 'active'",
+          required: true,
+          supportExpressions: true,
+        },
+        {
+          key: "trueLabel",
+          type: "text",
+          label: "True Path Label",
+          placeholder: "If condition is true",
+          required: false,
+        },
+        {
+          key: "falseLabel",
+          type: "text",
+          label: "False Path Label",
+          placeholder: "If condition is false",
+          required: false,
+        },
+      ],
+      required: ["condition"],
+    },
+
+    executor: {
+      async execute(config) {
+        // Evaluate condition (simplified for demo)
+        const conditionResult = Math.random() > 0.5; // Random result for demo
+        const timestamp = new Date().toISOString();
+
+        return {
+          success: true,
+          data: {
+            condition: config.condition as string,
+            result: conditionResult,
+            path: conditionResult ? "true" : "false",
+            timestamp,
+          },
+          metadata: { nodeType: "logic", subtype: "branch_condition" },
+        };
+      },
+    },
+  }),
+
+  createIntegration({
+    id: "transform_data",
+    name: "Transform Data",
+    category: "logic",
+    description: "Transform and format data",
+    icon: "brain",
+    version: "1.0.0",
+
+    colorClass: "text-violet-600 dark:text-violet-400",
+    borderClass:
+      "border-violet-200 dark:border-violet-800 hover:border-violet-300 dark:hover:border-violet-700",
+    selectedBorderClass:
+      "border-violet-600 dark:border-violet-400 shadow-lg ring-1 ring-violet-500/20 dark:ring-violet-400/20",
+
+    schema: {
+      fields: [
+        {
+          key: "inputData",
+          type: "textarea",
+          label: "Input Data",
+          placeholder: "{{$node.previous-node.data}}",
+          required: true,
+          supportExpressions: true,
+        },
+        {
+          key: "transformation",
+          type: "select",
+          label: "Transformation Type",
+          required: true,
+          options: [
+            { label: "Format JSON", value: "format_json" },
+            { label: "Extract Field", value: "extract_field" },
+            { label: "Convert to String", value: "to_string" },
+            { label: "Convert to Number", value: "to_number" },
+          ],
+        },
+        {
+          key: "fieldPath",
+          type: "text",
+          label: "Field Path (for extraction)",
+          placeholder: "{{$node.webhook-1.data.user.email}}",
+          required: false,
+        },
+      ],
+      required: ["inputData", "transformation"],
+    },
+
+    executor: {
+      async execute(config) {
+        const transformation = config.transformation as string;
+        const inputData = config.inputData;
+        const timestamp = new Date().toISOString();
+
+        let result;
+        switch (transformation) {
+          case "format_json":
+            result = JSON.stringify(inputData, null, 2);
+            break;
+          case "extract_field":
+            result = `Extracted: ${config.fieldPath}`;
+            break;
+          case "to_string":
+            result = String(inputData);
+            break;
+          case "to_number":
+            result = Number(inputData) || 0;
+            break;
+          default:
+            result = inputData;
+        }
+
+        return {
+          success: true,
+          data: {
+            input: inputData,
+            transformation,
+            result,
+            timestamp,
+          },
+          metadata: { nodeType: "logic", subtype: "transform_data" },
+        };
+      },
+    },
+  }),
+];
+
+// ============================================
+// RUNTIME VALIDATION HELPER
+// ============================================
+
+function validateIntegrationOutput(
+  integrationId: string,
+  result: ExecutionResult
+): boolean {
+  if (!result.success) return true; // Don't validate failed executions
+
+  const data = result.data;
+  if (!data) return false;
+
+  // Basic validation - ensure timestamp exists
+  if (!data.timestamp || typeof data.timestamp !== "string") {
+    console.warn(
+      `Integration ${integrationId} missing required timestamp field`
+    );
+    return false;
+  }
+
+  return true;
+}
+
+// ============================================
+// INTEGRATION REGISTRY CLASS
+// ============================================
+
+class IntegrationRegistry {
+  private integrations = new Map<string, Integration>();
+
+  constructor() {
+    // Register all integrations
+    this.registerIntegrations([
+      ...TRIGGER_INTEGRATIONS,
+      ...ACTION_INTEGRATIONS,
+      ...LOGIC_INTEGRATIONS,
+    ]);
+  }
+
+  private registerIntegrations(integrations: Integration[]) {
+    integrations.forEach((integration) => {
+      this.integrations.set(integration.id, integration);
+    });
+  }
+
+  register(integration: Integration) {
+    this.integrations.set(integration.id, integration);
+  }
+
+  unregister(id: string) {
+    return this.integrations.delete(id);
+  }
+
+  get(id: string): Integration | undefined {
+    return this.integrations.get(id);
+  }
+
+  getByCategory(category: "trigger" | "action" | "logic"): Integration[] {
+    return Array.from(this.integrations.values()).filter(
+      (integration) => integration.category === category
+    );
+  }
+
+  getAll(): Integration[] {
+    return Array.from(this.integrations.values());
+  }
+
+  getTriggers(): Integration[] {
+    return this.getByCategory("trigger");
+  }
+
+  getActions(): Integration[] {
+    return this.getByCategory("action");
+  }
+
+  getLogic(): Integration[] {
+    return this.getByCategory("logic");
+  }
+
+  // Search integrations by name, description, or category
+  search(query: string): Integration[] {
+    const lowercaseQuery = query.toLowerCase();
+    return Array.from(this.integrations.values()).filter(
+      (integration) =>
+        integration.name.toLowerCase().includes(lowercaseQuery) ||
+        integration.description.toLowerCase().includes(lowercaseQuery) ||
+        integration.category.toLowerCase().includes(lowercaseQuery)
+    );
+  }
+
+  // Get integrations with auth requirements
+  getAuthRequired(): Integration[] {
+    return Array.from(this.integrations.values()).filter(
+      (integration) => integration.auth?.required
+    );
+  }
+
+  // Get integrations by version
+  getByVersion(version: string): Integration[] {
+    return Array.from(this.integrations.values()).filter(
+      (integration) => integration.version === version
+    );
+  }
+
+  // Validate integration configuration
+  validateConfig(
+    integrationId: string,
+    config: Record<string, unknown>
+  ): ValidationResult {
+    const integration = this.get(integrationId);
+    if (!integration) {
+      return {
+        valid: false,
+        errors: { integration: "Integration not found" },
+      };
+    }
+
+    if (integration.executor.validate) {
+      return integration.executor.validate(config);
+    }
+
+    // Basic validation based on schema
+    const errors: Record<string, string> = {};
+    integration.schema.required.forEach((field) => {
+      if (!config[field]) {
+        errors[field] = `${field} is required`;
+      }
+    });
+
+    // Field-level validation
+    integration.schema.fields.forEach((field) => {
+      const value = config[field.key];
+      if (field.validation && value !== undefined) {
+        const validationError = field.validation(value);
+        if (validationError) {
+          errors[field.key] = validationError;
+        }
+      }
+    });
+
+    return {
+      valid: Object.keys(errors).length === 0,
+      errors,
+    };
+  }
+
+  // Execute an integration
+  async executeIntegration(
+    integrationId: string,
+    config: Record<string, unknown>,
+    context: WorkflowContext
+  ): Promise<ExecutionResult> {
+    const integration = this.get(integrationId);
+    if (!integration) {
+      return {
+        success: false,
+        error: `Integration '${integrationId}' not found`,
+        metadata: {
+          nodeType: "unknown",
+          subtype: integrationId,
+        },
+      };
+    }
+
+    try {
+      const startTime = Date.now();
+      const result = await integration.executor.execute(config, context);
+      const executionTime = Date.now() - startTime;
+
+      // Add execution time to metadata
+      if (result.metadata) {
+        result.metadata.executionTime = executionTime;
+      }
+
+      // Validate output schema
+      if (!validateIntegrationOutput(integrationId, result)) {
+        console.warn(
+          `Integration ${integrationId} returned invalid output schema`
+        );
+      }
+
+      return result;
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : "Unknown error",
+        metadata: {
+          nodeType: integration.category,
+          subtype: integrationId,
+        },
+      };
+    }
+  }
+
+  // Get integration statistics
+  getStats() {
+    const integrations = this.getAll();
+    return {
+      total: integrations.length,
+      triggers: this.getTriggers().length,
+      actions: this.getActions().length,
+      logic: this.getLogic().length,
+      withAuth: this.getAuthRequired().length,
+    };
+  }
+}
+
+// Create and export the global registry instance
+export const integrationRegistry = new IntegrationRegistry();
+
+// Export types for external use
+export type {
+  Integration,
+  IntegrationSchema,
+  SchemaField,
+  IntegrationExecutor,
+  ExecutionResult,
+  ValidationResult,
+  WorkflowContext,
+};
+
+// Export the registry class for advanced usage
+export { IntegrationRegistry };
+
+// Export helper functions
+export const createCustomIntegration = (
+  config: Omit<Integration, "version"> & { version?: string }
+): Integration => {
+  return {
+    version: "1.0.0",
+    ...config,
+  };
+};
+
+export const createIntegrationSchema = (
+  fields: SchemaField[],
+  required: string[] = [],
+  dependencies?: Record<string, string[]>
+): IntegrationSchema => ({
+  fields,
+  required,
+  dependencies,
+});
+
+export const createSchemaField = (config: SchemaField): SchemaField => config;
+
+----- Content End -----
+
+===== File: lib/logger.ts =====
+Type: .ts
+----- Content Start -----
+// lib/logger.ts
+import { pool } from "./db";
+
+export type LogLevel = "debug" | "info" | "warn" | "error" | "fatal";
+export type LogContext =
+  | "workflow"
+  | "execution"
+  | "integration"
+  | "api"
+  | "system"
+  | "auth"
+  | "database";
+
+interface LogEntry {
+  level: LogLevel;
+  message: string;
+  context: LogContext;
+  metadata?: Record<string, unknown>;
+  error?: Error;
+  userId?: string;
+  workflowId?: string;
+  executionId?: string;
+  nodeId?: string;
+  integrationId?: string;
+  requestId?: string;
+  timestamp?: Date;
+}
+
+interface DatabaseLogEntry extends LogEntry {
+  id: string;
+  timestamp: Date;
+  stack_trace?: string;
+  user_agent?: string;
+  ip_address?: string;
+}
+
+class Logger {
+  private static instance: Logger;
+  private isEnabled = true;
+  private logToConsole = true;
+  private logToDatabase = true;
+
+  private constructor() {
+    this.initializeDatabase();
+  }
+
+  static getInstance(): Logger {
+    if (!Logger.instance) {
+      Logger.instance = new Logger();
+    }
+    return Logger.instance;
+  }
+
+  private async initializeDatabase() {
+    try {
+      const createLogsTable = `
+        CREATE TABLE IF NOT EXISTS system_logs (
+          id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+          level VARCHAR(10) NOT NULL,
+          message TEXT NOT NULL,
+          context VARCHAR(20) NOT NULL,
+          metadata JSONB DEFAULT '{}',
+          stack_trace TEXT,
+          user_id VARCHAR(255),
+          workflow_id UUID,
+          execution_id UUID,
+          node_id VARCHAR(255),
+          integration_id VARCHAR(255),
+          request_id VARCHAR(255),
+          user_agent TEXT,
+          ip_address INET,
+          timestamp TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+          created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+        );
+
+        CREATE INDEX IF NOT EXISTS idx_system_logs_level ON system_logs(level);
+        CREATE INDEX IF NOT EXISTS idx_system_logs_context ON system_logs(context);
+        CREATE INDEX IF NOT EXISTS idx_system_logs_timestamp ON system_logs(timestamp);
+        CREATE INDEX IF NOT EXISTS idx_system_logs_workflow_id ON system_logs(workflow_id);
+        CREATE INDEX IF NOT EXISTS idx_system_logs_execution_id ON system_logs(execution_id);
+        CREATE INDEX IF NOT EXISTS idx_system_logs_user_id ON system_logs(user_id);
+      `;
+
+      await pool.query(createLogsTable);
+    } catch (error) {
+      console.error("Failed to initialize logs database:", error);
+    }
+  }
+
+  private getLogColor(level: LogLevel): string {
+    switch (level) {
+      case "debug":
+        return "\x1b[36m"; // Cyan
+      case "info":
+        return "\x1b[32m"; // Green
+      case "warn":
+        return "\x1b[33m"; // Yellow
+      case "error":
+        return "\x1b[31m"; // Red
+      case "fatal":
+        return "\x1b[35m"; // Magenta
+      default:
+        return "\x1b[0m"; // Reset
+    }
+  }
+
+  private formatConsoleLog(entry: LogEntry): string {
+    const color = this.getLogColor(entry.level);
+    const reset = "\x1b[0m";
+    const timestamp = new Date().toISOString();
+
+    let logLine = `${color}[${timestamp}] ${entry.level.toUpperCase()} [${
+      entry.context
+    }]${reset} ${entry.message}`;
+
+    if (entry.workflowId) logLine += ` (workflow: ${entry.workflowId})`;
+    if (entry.executionId) logLine += ` (execution: ${entry.executionId})`;
+    if (entry.nodeId) logLine += ` (node: ${entry.nodeId})`;
+
+    return logLine;
+  }
+
+  private async saveToDatabase(entry: LogEntry): Promise<void> {
+    if (!this.logToDatabase) return;
+
+    try {
+      const query = `
+        INSERT INTO system_logs (
+          level, message, context, metadata, stack_trace, 
+          user_id, workflow_id, execution_id, node_id, 
+          integration_id, request_id, timestamp
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      `;
+
+      const values = [
+        entry.level,
+        entry.message,
+        entry.context,
+        JSON.stringify(entry.metadata || {}),
+        entry.error?.stack || null,
+        entry.userId || null,
+        entry.workflowId || null,
+        entry.executionId || null,
+        entry.nodeId || null,
+        entry.integrationId || null,
+        entry.requestId || null,
+        entry.timestamp || new Date(),
+      ];
+
+      await pool.query(query, values);
+    } catch (error) {
+      // Don't log to database if database logging fails (infinite loop prevention)
+      if (this.logToConsole) {
+        console.error("Failed to save log to database:", error);
+      }
+    }
+  }
+
+  private async log(entry: LogEntry): Promise<void> {
+    if (!this.isEnabled) return;
+
+    // Console logging
+    if (this.logToConsole) {
+      const formattedLog = this.formatConsoleLog(entry);
+
+      switch (entry.level) {
+        case "debug":
+          console.debug(formattedLog);
+          break;
+        case "info":
+          console.info(formattedLog);
+          break;
+        case "warn":
+          console.warn(formattedLog);
+          if (entry.metadata) console.warn("Metadata:", entry.metadata);
+          break;
+        case "error":
+        case "fatal":
+          console.error(formattedLog);
+          if (entry.error) console.error("Error:", entry.error);
+          if (entry.metadata) console.error("Metadata:", entry.metadata);
+          break;
+      }
+    }
+
+    // Database logging (async, don't block)
+    this.saveToDatabase(entry).catch(() => {
+      // Silently fail database logging to prevent infinite loops
+    });
+  }
+
+  // Public logging methods
+  debug(
+    message: string,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ): void {
+    this.log({ level: "debug", message, context, metadata, ...options });
+  }
+
+  info(
+    message: string,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ): void {
+    this.log({ level: "info", message, context, metadata, ...options });
+  }
+
+  warn(
+    message: string,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ): void {
+    this.log({ level: "warn", message, context, metadata, ...options });
+  }
+
+  error(
+    message: string,
+    error?: Error,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ): void {
+    this.log({ level: "error", message, context, metadata, error, ...options });
+  }
+
+  fatal(
+    message: string,
+    error?: Error,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ): void {
+    this.log({ level: "fatal", message, context, metadata, error, ...options });
+  }
+
+  // Workflow-specific logging methods
+  workflowInfo(
+    message: string,
+    workflowId: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.info(message, "workflow", metadata, { workflowId });
+  }
+
+  workflowError(
+    message: string,
+    workflowId: string,
+    error?: Error,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.error(message, error, "workflow", metadata, { workflowId });
+  }
+
+  // Execution-specific logging methods
+  executionInfo(
+    message: string,
+    executionId: string,
+    workflowId?: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.info(message, "execution", metadata, { executionId, workflowId });
+  }
+
+  executionError(
+    message: string,
+    executionId: string,
+    error?: Error,
+    workflowId?: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.error(message, error, "execution", metadata, {
+      executionId,
+      workflowId,
+    });
+  }
+
+  // Node-specific logging methods
+  nodeInfo(
+    message: string,
+    nodeId: string,
+    executionId?: string,
+    workflowId?: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.info(message, "execution", metadata, {
+      nodeId,
+      executionId,
+      workflowId,
+    });
+  }
+
+  nodeError(
+    message: string,
+    nodeId: string,
+    error?: Error,
+    executionId?: string,
+    workflowId?: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.error(message, error, "execution", metadata, {
+      nodeId,
+      executionId,
+      workflowId,
+    });
+  }
+
+  // Integration-specific logging methods
+  integrationInfo(
+    message: string,
+    integrationId: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.info(message, "integration", metadata, { integrationId });
+  }
+
+  integrationError(
+    message: string,
+    integrationId: string,
+    error?: Error,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.error(message, error, "integration", metadata, { integrationId });
+  }
+
+  // API-specific logging methods
+  apiInfo(
+    message: string,
+    requestId?: string,
+    userId?: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.info(message, "api", metadata, { requestId, userId });
+  }
+
+  apiError(
+    message: string,
+    error?: Error,
+    requestId?: string,
+    userId?: string,
+    metadata?: Record<string, unknown>
+  ): void {
+    this.error(message, error, "api", metadata, { requestId, userId });
+  }
+
+  // Database retrieval methods
+  async getLogs(
+    options: {
+      level?: LogLevel;
+      context?: LogContext;
+      workflowId?: string;
+      executionId?: string;
+      nodeId?: string;
+      userId?: string;
+      startDate?: Date;
+      endDate?: Date;
+      limit?: number;
+      offset?: number;
+    } = {}
+  ): Promise<DatabaseLogEntry[]> {
+    try {
+      let query = "SELECT * FROM system_logs WHERE 1=1";
+      const queryParams: unknown[] = [];
+      let paramCount = 0;
+
+      if (options.level) {
+        queryParams.push(options.level);
+        query += ` AND level = $${++paramCount}`;
+      }
+
+      if (options.context) {
+        queryParams.push(options.context);
+        query += ` AND context = $${++paramCount}`;
+      }
+
+      if (options.workflowId) {
+        queryParams.push(options.workflowId);
+        query += ` AND workflow_id = $${++paramCount}`;
+      }
+
+      if (options.executionId) {
+        queryParams.push(options.executionId);
+        query += ` AND execution_id = $${++paramCount}`;
+      }
+
+      if (options.nodeId) {
+        queryParams.push(options.nodeId);
+        query += ` AND node_id = $${++paramCount}`;
+      }
+
+      if (options.userId) {
+        queryParams.push(options.userId);
+        query += ` AND user_id = $${++paramCount}`;
+      }
+
+      if (options.startDate) {
+        queryParams.push(options.startDate);
+        query += ` AND timestamp >= $${++paramCount}`;
+      }
+
+      if (options.endDate) {
+        queryParams.push(options.endDate);
+        query += ` AND timestamp <= $${++paramCount}`;
+      }
+
+      query += " ORDER BY timestamp DESC";
+
+      if (options.limit) {
+        queryParams.push(options.limit);
+        query += ` LIMIT $${++paramCount}`;
+      }
+
+      if (options.offset) {
+        queryParams.push(options.offset);
+        query += ` OFFSET $${++paramCount}`;
+      }
+
+      const result = await pool.query(query, queryParams);
+      return result.rows;
+    } catch (error) {
+      console.error("Failed to retrieve logs:", error);
+      return [];
+    }
+  }
+
+  async getLogStats(): Promise<{
+    total: number;
+    byLevel: Record<LogLevel, number>;
+    byContext: Record<LogContext, number>;
+    last24Hours: number;
+  }> {
+    try {
+      const [totalResult, levelResult, contextResult, recentResult] =
+        await Promise.all([
+          pool.query("SELECT COUNT(*) as count FROM system_logs"),
+          pool.query(
+            "SELECT level, COUNT(*) as count FROM system_logs GROUP BY level"
+          ),
+          pool.query(
+            "SELECT context, COUNT(*) as count FROM system_logs GROUP BY context"
+          ),
+          pool.query(
+            "SELECT COUNT(*) as count FROM system_logs WHERE timestamp >= NOW() - INTERVAL '24 hours'"
+          ),
+        ]);
+
+      const byLevel = {} as Record<LogLevel, number>;
+      levelResult.rows.forEach((row) => {
+        byLevel[row.level as LogLevel] = parseInt(row.count);
+      });
+
+      const byContext = {} as Record<LogContext, number>;
+      contextResult.rows.forEach((row) => {
+        byContext[row.context as LogContext] = parseInt(row.count);
+      });
+
+      return {
+        total: parseInt(totalResult.rows[0].count),
+        byLevel,
+        byContext,
+        last24Hours: parseInt(recentResult.rows[0].count),
+      };
+    } catch (error) {
+      console.error("Failed to get log stats:", error);
+      return {
+        total: 0,
+        byLevel: {} as Record<LogLevel, number>,
+        byContext: {} as Record<LogContext, number>,
+        last24Hours: 0,
+      };
+    }
+  }
+
+  // Configuration methods
+  enableConsoleLogging(): void {
+    this.logToConsole = true;
+  }
+
+  disableConsoleLogging(): void {
+    this.logToConsole = false;
+  }
+
+  enableDatabaseLogging(): void {
+    this.logToDatabase = true;
+  }
+
+  disableDatabaseLogging(): void {
+    this.logToDatabase = false;
+  }
+
+  enable(): void {
+    this.isEnabled = true;
+  }
+
+  disable(): void {
+    this.isEnabled = false;
+  }
+}
+
+// Export singleton instance
+export const logger = Logger.getInstance();
+
+// Export convenience functions for easier importing
+export const log = {
+  debug: (
+    message: string,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ) => logger.debug(message, context, metadata, options),
+
+  info: (
+    message: string,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ) => logger.info(message, context, metadata, options),
+
+  warn: (
+    message: string,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ) => logger.warn(message, context, metadata, options),
+
+  error: (
+    message: string,
+    error?: Error,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ) => logger.error(message, error, context, metadata, options),
+
+  fatal: (
+    message: string,
+    error?: Error,
+    context: LogContext = "system",
+    metadata?: Record<string, unknown>,
+    options?: Partial<LogEntry>
+  ) => logger.fatal(message, error, context, metadata, options),
+
+  // Workflow shortcuts
+  workflow: {
+    info: (
+      message: string,
+      workflowId: string,
+      metadata?: Record<string, unknown>
+    ) => logger.workflowInfo(message, workflowId, metadata),
+    error: (
+      message: string,
+      workflowId: string,
+      error?: Error,
+      metadata?: Record<string, unknown>
+    ) => logger.workflowError(message, workflowId, error, metadata),
+  },
+
+  // Execution shortcuts
+  execution: {
+    info: (
+      message: string,
+      executionId: string,
+      workflowId?: string,
+      metadata?: Record<string, unknown>
+    ) => logger.executionInfo(message, executionId, workflowId, metadata),
+    error: (
+      message: string,
+      executionId: string,
+      error?: Error,
+      workflowId?: string,
+      metadata?: Record<string, unknown>
+    ) =>
+      logger.executionError(message, executionId, error, workflowId, metadata),
+  },
+
+  // Node shortcuts
+  node: {
+    info: (
+      message: string,
+      nodeId: string,
+      executionId?: string,
+      workflowId?: string,
+      metadata?: Record<string, unknown>
+    ) => logger.nodeInfo(message, nodeId, executionId, workflowId, metadata),
+    error: (
+      message: string,
+      nodeId: string,
+      error?: Error,
+      executionId?: string,
+      workflowId?: string,
+      metadata?: Record<string, unknown>
+    ) =>
+      logger.nodeError(
+        message,
+        nodeId,
+        error,
+        executionId,
+        workflowId,
+        metadata
+      ),
+  },
+
+  // Integration shortcuts
+  integration: {
+    info: (
+      message: string,
+      integrationId: string,
+      metadata?: Record<string, unknown>
+    ) => logger.integrationInfo(message, integrationId, metadata),
+    error: (
+      message: string,
+      integrationId: string,
+      error?: Error,
+      metadata?: Record<string, unknown>
+    ) => logger.integrationError(message, integrationId, error, metadata),
+  },
+
+  // API shortcuts
+  api: {
+    info: (
+      message: string,
+      requestId?: string,
+      userId?: string,
+      metadata?: Record<string, unknown>
+    ) => logger.apiInfo(message, requestId, userId, metadata),
+    error: (
+      message: string,
+      error?: Error,
+      requestId?: string,
+      userId?: string,
+      metadata?: Record<string, unknown>
+    ) => logger.apiError(message, error, requestId, userId, metadata),
+  },
+};
+
+// Export default logger instance
+export default logger;
+
+----- Content End -----
+
+===== File: lib/startup.ts =====
+Type: .ts
+----- Content Start -----
+import { QueueProcessor } from "./execution-engine";
+
+let queueProcessor: QueueProcessor | null = null;
+
+export function startBackgroundProcesses() {
+  if (queueProcessor) return; // Already started
+
+  queueProcessor = new QueueProcessor();
+  queueProcessor.start();
+
+  // Graceful shutdown
+  process.on("SIGINT", () => {
+    console.log("Shutting down background processes...");
+    queueProcessor?.stop();
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", () => {
+    console.log("Shutting down background processes...");
+    queueProcessor?.stop();
+    process.exit(0);
+  });
+}
+
+----- Content End -----
+
+===== File: lib/execution-engine.ts =====
+Type: .ts
+----- Content Start -----
+// lib/execution-engine.ts
+import { pool } from "./db";
+import { log } from "./logger";
+import { integrationRegistry, type WorkflowContext } from "./integrations";
+
+interface WorkflowNode {
+  id: string;
+  type: string;
+  data: {
+    label: string;
+    subtype?: string;
+    config?: Record<string, unknown>;
+  };
+}
+
+interface WorkflowEdge {
+  id: string;
+  source: string;
+  target: string;
+}
+
+export class ExecutionEngine {
+  async executeWorkflow(executionId: string) {
+    log.execution.info("Starting workflow execution", executionId);
+
+    try {
+      // Get execution and workflow data
+      const executionQuery = `
+        SELECT we.*, w.nodes, w.edges, w.id as workflow_id, w.name as workflow_name
+        FROM workflow_executions we 
+        JOIN workflows w ON we.workflow_id = w.id 
+        WHERE we.id = $1
+      `;
+      const result = await pool.query(executionQuery, [executionId]);
+      if (result.rows.length === 0) {
+        const error = new Error("Execution not found");
+        log.execution.error(
+          "Execution not found in database",
+          executionId,
+          error
+        );
+        throw error;
+      }
+
+      const execution = result.rows[0];
+      const nodes: WorkflowNode[] = execution.nodes;
+      const edges: WorkflowEdge[] = execution.edges;
+      const workflowId = execution.workflow_id;
+      const workflowName = execution.workflow_name;
+
+      log.workflow.info(`Executing workflow: ${workflowName}`, workflowId, {
+        executionId,
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+      });
+
+      // Update status to running
+      await pool.query(
+        "UPDATE workflow_executions SET status = $1, started_at = NOW() WHERE id = $2",
+        ["running", executionId]
+      );
+
+      const context: WorkflowContext = {
+        variables: {},
+        nodeOutputs: {},
+        executionId,
+      };
+
+      // Get execution order (topological sort)
+      const executionOrder = this.getExecutionOrder(nodes, edges);
+      log.execution.info(
+        "Determined execution order",
+        executionId,
+        workflowId,
+        {
+          order: executionOrder,
+          totalNodes: nodes.length,
+        }
+      );
+
+      // Execute nodes in order
+      for (const nodeId of executionOrder) {
+        const node = nodes.find((n) => n.id === nodeId);
+        if (!node) {
+          log.node.error(
+            "Node not found in workflow",
+            nodeId,
+            undefined,
+            executionId,
+            workflowId
+          );
+          continue;
+        }
+
+        log.node.info(
+          `Starting node execution: ${node.data.label}`,
+          nodeId,
+          executionId,
+          workflowId,
+          {
+            nodeType: node.type,
+            integration: node.data.subtype,
+          }
+        );
+
+        await this.executeNode(node, context, executionId, workflowId);
+      }
+
+      // Mark as completed
+      await pool.query(
+        "UPDATE workflow_executions SET status = $1, completed_at = NOW() WHERE id = $2",
+        ["completed", executionId]
+      );
+
+      log.execution.info(
+        "Workflow execution completed successfully",
+        executionId,
+        workflowId,
+        {
+          totalNodesExecuted: executionOrder.length,
+          finalContext: {
+            variableCount: Object.keys(context.variables).length,
+            nodeOutputCount: Object.keys(context.nodeOutputs).length,
+          },
+        }
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      log.execution.error(
+        "Workflow execution failed",
+        executionId,
+        error as Error,
+        undefined,
+        {
+          errorType: error?.constructor.name,
+          failurePoint: "workflow_execution",
+        }
+      );
+
+      // Mark as failed
+      await pool.query(
+        "UPDATE workflow_executions SET status = $1, completed_at = NOW(), error_message = $2 WHERE id = $3",
+        ["failed", errorMessage, executionId]
+      );
+      throw error;
+    }
+  }
+
+  private async executeNode(
+    node: WorkflowNode,
+    context: WorkflowContext,
+    executionId: string,
+    workflowId?: string
+  ) {
+    const nodeId = node.id;
+
+    // Create execution step record
+    const stepResult = await pool.query(
+      "INSERT INTO execution_steps (execution_id, node_id, status, started_at) VALUES ($1, $2, $3, NOW()) RETURNING *",
+      [executionId, nodeId, "running"]
+    );
+    const stepId = stepResult.rows[0].id;
+
+    log.node.info(`Node execution started`, nodeId, executionId, workflowId, {
+      stepId,
+      nodeLabel: node.data.label,
+      integration: node.data.subtype,
+      config: node.data.config,
+    });
+
+    try {
+      // Execute the node
+      const result = await this.simulateNodeExecution(
+        node,
+        context,
+        workflowId
+      );
+
+      // Store result in context
+      context.nodeOutputs[nodeId] = result;
+
+      // Update step as completed
+      await pool.query(
+        "UPDATE execution_steps SET status = $1, completed_at = NOW(), result = $2 WHERE id = $3",
+        ["completed", JSON.stringify(result), stepId]
+      );
+
+      log.node.info(
+        `Node execution completed successfully`,
+        nodeId,
+        executionId,
+        workflowId,
+        {
+          stepId,
+          success: result.success,
+          hasData: "data" in result && !!result.data,
+          resultKeys:
+            "data" in result && result.data ? Object.keys(result.data) : [],
+        }
+      );
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+
+      log.node.error(
+        `Node execution failed: ${errorMessage}`,
+        nodeId,
+        error as Error,
+        executionId,
+        workflowId,
+        {
+          stepId,
+          nodeLabel: node.data.label,
+          integration: node.data.subtype,
+          errorType: error?.constructor.name,
+        }
+      );
+
+      // Update step as failed
+      await pool.query(
+        "UPDATE execution_steps SET status = $1, completed_at = NOW(), error_message = $2 WHERE id = $3",
+        ["failed", errorMessage, stepId]
+      );
+      throw error;
+    }
+  }
+
+  private async simulateNodeExecution(
+    node: WorkflowNode,
+    context: WorkflowContext,
+    workflowId?: string
+  ) {
+    const config = node.data.config || {};
+    const integrationId = node.data.subtype;
+
+    if (!integrationId) {
+      const error = new Error("No integration subtype specified for node");
+      log.integration.error("Missing integration subtype", "unknown", error, {
+        nodeId: node.id,
+        nodeLabel: node.data.label,
+        workflowId,
+      });
+      return {
+        success: false,
+        error: "No integration subtype specified for node",
+        metadata: { nodeType: "unknown" },
+      };
+    }
+
+    log.integration.info(
+      `Executing integration: ${integrationId}`,
+      integrationId,
+      {
+        nodeId: node.id,
+        config: Object.keys(config),
+        workflowId,
+        executionId: context.executionId,
+      }
+    );
+
+    try {
+      // Use the integration registry to execute the node
+      const result = await integrationRegistry.executeIntegration(
+        integrationId,
+        config,
+        context
+      );
+
+      if (result.success) {
+        log.integration.info(
+          `Integration executed successfully: ${integrationId}`,
+          integrationId,
+          {
+            nodeId: node.id,
+            hasData: !!result.data,
+            workflowId,
+            executionId: context.executionId,
+          }
+        );
+      } else {
+        log.integration.error(
+          `Integration execution failed: ${result.error || "Unknown error"}`,
+          integrationId,
+          undefined,
+          {
+            nodeId: node.id,
+            error: result.error,
+            workflowId,
+            executionId: context.executionId,
+          }
+        );
+      }
+
+      return result;
+    } catch (error) {
+      log.integration.error(
+        `Integration threw exception: ${
+          error instanceof Error ? error.message : "Unknown error"
+        }`,
+        integrationId,
+        error as Error,
+        {
+          nodeId: node.id,
+          workflowId,
+          executionId: context.executionId,
+        }
+      );
+      throw error;
+    }
+  }
+
+  private getExecutionOrder(
+    nodes: WorkflowNode[],
+    edges: WorkflowEdge[]
+  ): string[] {
+    log.debug("Computing execution order", "execution", {
+      nodeCount: nodes.length,
+      edgeCount: edges.length,
+    });
+
+    const adjacencyList: Record<string, string[]> = {};
+    const inDegree: Record<string, number> = {};
+
+    // Initialize
+    nodes.forEach((node) => {
+      adjacencyList[node.id] = [];
+      inDegree[node.id] = 0;
+    });
+
+    // Build graph
+    edges.forEach((edge) => {
+      adjacencyList[edge.source].push(edge.target);
+      inDegree[edge.target]++;
+    });
+
+    // Topological sort
+    const queue: string[] = [];
+    const result: string[] = [];
+
+    Object.keys(inDegree).forEach((nodeId) => {
+      if (inDegree[nodeId] === 0) {
+        queue.push(nodeId);
+      }
+    });
+
+    while (queue.length > 0) {
+      const nodeId = queue.shift()!;
+      result.push(nodeId);
+
+      adjacencyList[nodeId].forEach((neighbor) => {
+        inDegree[neighbor]--;
+        if (inDegree[neighbor] === 0) {
+          queue.push(neighbor);
+        }
+      });
+    }
+
+    if (result.length !== nodes.length) {
+      log.warn("Topological sort detected cycle in workflow", "execution", {
+        expectedNodes: nodes.length,
+        sortedNodes: result.length,
+        missingNodes: nodes
+          .filter((n) => !result.includes(n.id))
+          .map((n) => n.id),
+      });
+    }
+
+    return result;
+  }
+}
+
+// Enhanced queue processor with better logging
+export class QueueProcessor {
+  private isProcessing = false;
+  private engine = new ExecutionEngine();
+  private processingCount = 0;
+
+  async start() {
+    if (this.isProcessing) {
+      log.warn("Queue processor start requested but already running", "system");
+      return;
+    }
+
+    this.isProcessing = true;
+    log.info("Queue processor started", "system");
+
+    while (this.isProcessing) {
+      try {
+        await this.processNextExecution();
+        await new Promise((resolve) => setTimeout(resolve, 5000)); // Check every 5 seconds
+      } catch (error) {
+        log.error("Queue processing error", error as Error, "system", {
+          processingCount: this.processingCount,
+          isProcessing: this.isProcessing,
+        });
+        await new Promise((resolve) => setTimeout(resolve, 10000)); // Wait longer on error
+      }
+    }
+  }
+
+  stop() {
+    this.isProcessing = false;
+    log.info("Queue processor stopped", "system", {
+      totalProcessed: this.processingCount,
+    });
+  }
+
+  private async processNextExecution() {
+    const result = await pool.query(
+      "SELECT id FROM workflow_executions WHERE status = $1 ORDER BY created_at ASC LIMIT 1",
+      ["pending"]
+    );
+
+    if (result.rows.length > 0) {
+      const executionId = result.rows[0].id;
+      this.processingCount++;
+
+      log.info(`Processing execution ${this.processingCount}`, "system", {
+        executionId,
+        queuePosition: 1, // Since we're taking the first one
+      });
+
+      try {
+        await this.engine.executeWorkflow(executionId);
+        log.info("Execution completed by queue processor", "system", {
+          executionId,
+          totalProcessed: this.processingCount,
+        });
+      } catch (error) {
+        log.error(
+          "Queue processor execution failed",
+          error as Error,
+          "system",
+          {
+            executionId,
+            totalProcessed: this.processingCount,
+          }
+        );
+      }
+    }
+  }
+}
+
+----- Content End -----
+
+===== File: lib/db.ts =====
+Type: .ts
+----- Content Start -----
+// lib/db.ts
+import { Pool } from "pg";
+
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL environment variable is not set");
+}
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl:
+    process.env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : { rejectUnauthorized: false }, // Railway requires SSL even in development
+  max: 10,
+  idleTimeoutMillis: 30000,
+  connectionTimeoutMillis: 10000,
+});
+
+// Test the connection
+pool.on("connect", () => {
+  console.log("✅ Connected to PostgreSQL database");
+});
+
+pool.on("error", (err) => {
+  console.error("❌ PostgreSQL connection error:", err);
+});
+
+export { pool };
+
+----- Content End -----
+
+===== File: components/LogsPanel.tsx =====
+Type: .tsx
+----- Content Start -----
+// components/LogsPanel.tsx
+"use client";
+import React, { useState, useEffect, useCallback } from "react";
+import {
+  X,
+  AlertCircle,
+  Info,
+  AlertTriangle,
+  XCircle,
+  Skull,
+  Copy,
+  Check,
+  RefreshCw,
+  Download,
+  Search,
+  ChevronDown,
+  ChevronRight,
+  Filter,
+  Trash2,
+} from "lucide-react";
+
+interface LogEntry {
+  id: string;
+  level: "debug" | "info" | "warn" | "error" | "fatal";
+  message: string;
+  context: string;
+  metadata?: Record<string, unknown>;
+  stack_trace?: string;
+  user_id?: string;
+  workflow_id?: string;
+  execution_id?: string;
+  node_id?: string;
+  integration_id?: string;
+  request_id?: string;
+  timestamp: string;
+}
+
+interface LogStats {
+  total: number;
+  byLevel: Record<string, number>;
+  byContext: Record<string, number>;
+  last24Hours: number;
+}
+
+interface LogsPanelProps {
+  isOpen: boolean;
+  onClose: () => void;
+  workflowId?: string;
+  executionId?: string;
+}
+
+export default function LogsPanel({
+  isOpen,
+  onClose,
+  workflowId,
+  executionId,
+}: LogsPanelProps) {
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [stats, setStats] = useState<LogStats | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [filters, setFilters] = useState({
+    level: "",
+    context: "",
+    search: "",
+  });
+  const [expandedLogs, setExpandedLogs] = useState<Set<string>>(new Set());
+  const [showFilters, setShowFilters] = useState(false);
+  const [copiedLogId, setCopiedLogId] = useState<string | null>(null);
+  const [copiedAll, setCopiedAll] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const fetchLogs = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value) params.append(key, value);
+      });
+
+      // Add context filters for current workflow/execution
+      if (workflowId) params.append("workflowId", workflowId);
+      if (executionId) params.append("executionId", executionId);
+      params.append("limit", "200"); // Show more logs in the panel
+
+      const response = await fetch(`/api/logs?${params}`);
+      const data = await response.json();
+      setLogs(data.logs || []);
+    } catch (error) {
+      console.error("Failed to fetch logs:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, workflowId, executionId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchLogs();
+      fetchStats();
+      // Auto-refresh every 10 seconds when panel is open
+      const interval = setInterval(fetchLogs, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [isOpen, fetchLogs]);
+
+  const fetchStats = async () => {
+    try {
+      const response = await fetch("/api/logs/stats");
+      const data = await response.json();
+      setStats(data);
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      // Could add a toast notification here
+    });
+  };
+
+  const copyLogEntry = (log: LogEntry) => {
+    const logText = `[${log.timestamp}] ${log.level.toUpperCase()} [${
+      log.context
+    }] ${log.message}
+${log.metadata ? `Metadata: ${JSON.stringify(log.metadata, null, 2)}` : ""}
+${log.stack_trace ? `Stack Trace: ${log.stack_trace}` : ""}
+${log.workflow_id ? `Workflow ID: ${log.workflow_id}` : ""}
+${log.execution_id ? `Execution ID: ${log.execution_id}` : ""}
+${log.node_id ? `Node ID: ${log.node_id}` : ""}`;
+
+    copyToClipboard(logText);
+    setCopiedLogId(log.id);
+    setTimeout(() => setCopiedLogId(null), 2000);
+  };
+
+  const copyAllLogs = () => {
+    if (filteredLogs.length === 0) return;
+
+    const allLogsText = filteredLogs
+      .map((log) => {
+        return `[${log.timestamp}] ${log.level.toUpperCase()} [${
+          log.context
+        }] ${log.message}
+${log.metadata ? `Metadata: ${JSON.stringify(log.metadata, null, 2)}` : ""}
+${log.stack_trace ? `Stack Trace: ${log.stack_trace}` : ""}
+${log.workflow_id ? `Workflow ID: ${log.workflow_id}` : ""}
+${log.execution_id ? `Execution ID: ${log.execution_id}` : ""}
+${log.node_id ? `Node ID: ${log.node_id}` : ""}`;
+      })
+      .join("\n\n");
+
+    copyToClipboard(allLogsText);
+    setCopiedAll(true);
+    setTimeout(() => setCopiedAll(false), 2000);
+  };
+
+  const exportLogs = () => {
+    const logData = logs.map((log) => ({
+      timestamp: log.timestamp,
+      level: log.level,
+      context: log.context,
+      message: log.message,
+      metadata: log.metadata,
+      workflow_id: log.workflow_id,
+      execution_id: log.execution_id,
+      node_id: log.node_id,
+      stack_trace: log.stack_trace,
+    }));
+
+    const blob = new Blob([JSON.stringify(logData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `logs-${new Date().toISOString().split("T")[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const clearAllLogs = async () => {
+    if (
+      !confirm(
+        "Are you sure you want to clear all logs? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    setClearing(true);
+    try {
+      const response = await fetch("/api/logs/clear", { method: "DELETE" });
+      if (response.ok) {
+        setLogs([]);
+        setStats(null);
+        fetchStats();
+      } else {
+        console.error("Failed to clear logs");
+      }
+    } catch (error) {
+      console.error("Failed to clear logs:", error);
+    } finally {
+      setClearing(false);
+    }
+  };
+
+  const getLogIcon = (level: string) => {
+    const iconClass = "w-4 h-4";
+    switch (level) {
+      case "debug":
+        return <Search className={`${iconClass} text-gray-500`} />;
+      case "info":
+        return <Info className={`${iconClass} text-blue-500`} />;
+      case "warn":
+        return <AlertTriangle className={`${iconClass} text-yellow-500`} />;
+      case "error":
+        return <XCircle className={`${iconClass} text-red-500`} />;
+      case "fatal":
+        return <Skull className={`${iconClass} text-purple-500`} />;
+      default:
+        return <AlertCircle className={`${iconClass} text-gray-500`} />;
+    }
+  };
+
+  const getLogLevelColor = (level: string) => {
+    switch (level) {
+      case "debug":
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+      case "info":
+        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200";
+      case "warn":
+        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200";
+      case "error":
+        return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200";
+      case "fatal":
+        return "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200";
+      default:
+        return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-200";
+    }
+  };
+
+  const toggleLogExpansion = (logId: string) => {
+    const newExpanded = new Set(expandedLogs);
+    if (newExpanded.has(logId)) {
+      newExpanded.delete(logId);
+    } else {
+      newExpanded.add(logId);
+    }
+    setExpandedLogs(newExpanded);
+  };
+
+  const filteredLogs = logs.filter((log) => {
+    if (filters.search) {
+      const searchLower = filters.search.toLowerCase();
+      return (
+        log.message.toLowerCase().includes(searchLower) ||
+        log.context.toLowerCase().includes(searchLower) ||
+        (log.workflow_id && log.workflow_id.includes(searchLower)) ||
+        (log.execution_id && log.execution_id.includes(searchLower))
+      );
+    }
+    return true;
+  });
+
+  if (!isOpen) return null;
+
+  return (
+    <>
+      {/* Overlay */}
+      <div className="fixed inset-0 bg-black/50 z-40" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="fixed inset-y-0 right-0 w-[600px] bg-[var(--card)] border-l border-[var(--border)] shadow-xl z-50 flex flex-col">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
+          <div className="flex items-center gap-3">
+            <h2 className="text-lg font-semibold text-[var(--foreground)]">
+              System Logs
+            </h2>
+            {stats && (
+              <div className="flex items-center gap-2 text-sm text-[var(--muted-foreground)]">
+                <span>{stats.total} total</span>
+                {stats.last24Hours > 0 && (
+                  <span className="text-blue-500">
+                    ({stats.last24Hours} today)
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(!showFilters)}
+              className={`p-2 rounded-lg transition-colors ${
+                showFilters
+                  ? "bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "hover:bg-[var(--muted)] text-[var(--muted-foreground)]"
+              }`}
+            >
+              <Filter className="w-4 h-4" />
+            </button>
+            <button
+              onClick={copyAllLogs}
+              disabled={filteredLogs.length === 0}
+              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--muted-foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Copy all logs"
+            >
+              {copiedAll ? (
+                <Check className="w-4 h-4 text-green-500" />
+              ) : (
+                <Copy className="w-4 h-4" />
+              )}
+            </button>
+            <button
+              onClick={fetchLogs}
+              disabled={loading}
+              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--muted-foreground)]"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${loading ? "animate-spin" : ""}`}
+              />
+            </button>
+            <button
+              onClick={exportLogs}
+              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--muted-foreground)]"
+              title="Export logs"
+            >
+              <Download className="w-4 h-4" />
+            </button>
+            <button
+              onClick={clearAllLogs}
+              disabled={clearing || logs.length === 0}
+              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--muted-foreground)] disabled:opacity-50 disabled:cursor-not-allowed"
+              title="Clear all logs"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+            <button
+              onClick={onClose}
+              className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors text-[var(--muted-foreground)]"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
+
+        {/* Filters */}
+        {showFilters && (
+          <div className="p-4 border-b border-[var(--border)] bg-[var(--muted)]/50">
+            <div className="space-y-3">
+              <div className="flex gap-3">
+                <select
+                  value={filters.level}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, level: e.target.value }))
+                  }
+                  className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--ring)] bg-[var(--background)]"
+                >
+                  <option value="">All Levels</option>
+                  <option value="debug">Debug</option>
+                  <option value="info">Info</option>
+                  <option value="warn">Warning</option>
+                  <option value="error">Error</option>
+                  <option value="fatal">Fatal</option>
+                </select>
+                <select
+                  value={filters.context}
+                  onChange={(e) =>
+                    setFilters((prev) => ({ ...prev, context: e.target.value }))
+                  }
+                  className="flex-1 px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--ring)] bg-[var(--background)]"
+                >
+                  <option value="">All Contexts</option>
+                  <option value="workflow">Workflow</option>
+                  <option value="execution">Execution</option>
+                  <option value="integration">Integration</option>
+                  <option value="api">API</option>
+                  <option value="system">System</option>
+                </select>
+              </div>
+              <input
+                type="text"
+                placeholder="Search logs..."
+                value={filters.search}
+                onChange={(e) =>
+                  setFilters((prev) => ({ ...prev, search: e.target.value }))
+                }
+                className="w-full px-3 py-2 border border-[var(--border)] rounded-lg text-sm focus:outline-none focus:border-[var(--ring)] bg-[var(--background)]"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Stats Bar */}
+        {stats && (
+          <div className="p-3 border-b border-[var(--border)] bg-[var(--muted)]/30">
+            <div className="flex gap-4 text-xs">
+              {Object.entries(stats.byLevel).map(([level, count]) => (
+                <div key={level} className="flex items-center gap-1">
+                  {getLogIcon(level)}
+                  <span className="capitalize">
+                    {level}: {count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Logs List */}
+        <div className="flex-1 overflow-y-auto custom-scrollbar">
+          {loading && logs.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-[var(--muted-foreground)]">
+              <RefreshCw className="w-5 h-5 animate-spin mr-2" />
+              Loading logs...
+            </div>
+          ) : filteredLogs.length === 0 ? (
+            <div className="flex items-center justify-center h-32 text-[var(--muted-foreground)]">
+              No logs found
+            </div>
+          ) : (
+            <div className="space-y-1 p-2">
+              {filteredLogs.map((log) => {
+                const isExpanded = expandedLogs.has(log.id);
+                return (
+                  <div
+                    key={log.id}
+                    className="bg-[var(--background)] border border-[var(--border)] rounded-lg p-3 hover:border-[var(--ring)]/30 transition-all group"
+                  >
+                    <div className="flex items-start gap-3">
+                      <button
+                        onClick={() => toggleLogExpansion(log.id)}
+                        className="mt-0.5 p-0.5 rounded hover:bg-[var(--muted)] transition-colors"
+                      >
+                        {isExpanded ? (
+                          <ChevronDown className="w-3 h-3 text-[var(--muted-foreground)]" />
+                        ) : (
+                          <ChevronRight className="w-3 h-3 text-[var(--muted-foreground)]" />
+                        )}
+                      </button>
+
+                      <div className="mt-0.5">{getLogIcon(log.level)}</div>
+
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getLogLevelColor(
+                              log.level
+                            )}`}
+                          >
+                            {log.level.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-[var(--muted-foreground)] bg-[var(--muted)] px-2 py-0.5 rounded">
+                            {log.context}
+                          </span>
+                          <span className="text-xs text-[var(--muted-foreground)]">
+                            {new Date(log.timestamp).toLocaleTimeString()}
+                          </span>
+                        </div>
+
+                        <p className="text-sm text-[var(--foreground)] leading-relaxed">
+                          {log.message}
+                        </p>
+
+                        {(log.workflow_id ||
+                          log.execution_id ||
+                          log.node_id) && (
+                          <div className="flex gap-2 mt-2 text-xs text-[var(--muted-foreground)]">
+                            {log.workflow_id && (
+                              <span className="bg-[var(--muted)] px-2 py-0.5 rounded">
+                                Workflow: {log.workflow_id.slice(-8)}
+                              </span>
+                            )}
+                            {log.execution_id && (
+                              <span className="bg-[var(--muted)] px-2 py-0.5 rounded">
+                                Execution: {log.execution_id.slice(-8)}
+                              </span>
+                            )}
+                            {log.node_id && (
+                              <span className="bg-[var(--muted)] px-2 py-0.5 rounded">
+                                Node: {log.node_id}
+                              </span>
+                            )}
+                          </div>
+                        )}
+
+                        {isExpanded && (
+                          <div className="mt-3 space-y-2">
+                            {log.metadata &&
+                              Object.keys(log.metadata).length > 0 && (
+                                <div>
+                                  <h4 className="text-xs font-medium text-[var(--foreground)] mb-1">
+                                    Metadata:
+                                  </h4>
+                                  <pre className="text-xs bg-[var(--muted)] p-2 rounded border overflow-x-auto">
+                                    <code>
+                                      {JSON.stringify(log.metadata, null, 2)}
+                                    </code>
+                                  </pre>
+                                </div>
+                              )}
+
+                            {log.stack_trace && (
+                              <div>
+                                <h4 className="text-xs font-medium text-[var(--foreground)] mb-1">
+                                  Stack Trace:
+                                </h4>
+                                <pre className="text-xs bg-[var(--muted)] p-2 rounded border overflow-x-auto font-mono">
+                                  <code>{log.stack_trace}</code>
+                                </pre>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => copyLogEntry(log)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-[var(--muted)] rounded transition-all"
+                        title="Copy log entry"
+                      >
+                        {copiedLogId === log.id ? (
+                          <Check className="w-3 h-3 text-green-500" />
+                        ) : (
+                          <Copy className="w-3 h-3 text-[var(--muted-foreground)]" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+----- Content End -----
+
