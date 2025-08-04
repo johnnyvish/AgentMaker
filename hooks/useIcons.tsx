@@ -52,6 +52,11 @@ import {
   HardDrive,
   AlertCircle,
   Grid,
+  // Logic component icons
+  Repeat,
+  GitBranch,
+  ShieldCheck,
+  Layers,
 } from "lucide-react";
 
 // Brand icons from react-icons
@@ -215,6 +220,16 @@ export const getIcon = (
       return <AlertCircle className={iconClass} />;
     case "grid":
       return <Grid className={iconClass} />;
+
+    // Logic component icons
+    case "repeat":
+      return <Repeat className={iconClass} />;
+    case "git-branch":
+      return <GitBranch className={iconClass} />;
+    case "shield-check":
+      return <ShieldCheck className={iconClass} />;
+    case "layers":
+      return <Layers className={iconClass} />;
 
     // Brand icons
     case "slack":

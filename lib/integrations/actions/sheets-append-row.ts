@@ -56,11 +56,11 @@ export const sheetsAppendRow: Integration = createIntegration({
     async execute(config) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       const timestamp = new Date().toISOString();
-      
+
       const spreadsheetId = config.spreadsheet_id as string;
       const range = config.range as string;
-      const sheetName = range.split('!')[0];
-      
+      const sheetName = range.split("!")[0];
+
       return {
         success: true,
         data: {
@@ -77,4 +77,4 @@ export const sheetsAppendRow: Integration = createIntegration({
       };
     },
   },
-}); 
+});

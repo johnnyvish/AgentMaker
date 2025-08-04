@@ -7,7 +7,7 @@ export const transformData: Integration = createIntegration({
   name: "Transform Data",
   category: "logic",
   description: "Transform and format data",
-  icon: "brain",
+  icon: "zap",
   version: "1.0.0",
 
   schema: {

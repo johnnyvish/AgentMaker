@@ -11,6 +11,12 @@ import { parseExpression } from "../expression";
 import { manualTrigger } from "./triggers/manual-trigger";
 import { webhookTrigger } from "./triggers/webhook-trigger";
 import { scheduleTrigger } from "./triggers/schedule-trigger";
+
+// New Triggers
+import { emailTrigger } from "./triggers/email-trigger";
+import { formTrigger } from "./triggers/form-trigger";
+import { databaseTrigger } from "./triggers/database-trigger";
+import { fileWatcherTrigger } from "./triggers/file-watcher-trigger";
 import { slackSendMessage } from "./actions/slack-send-message";
 import { setVariable } from "./actions/set-variable";
 import { emailSend } from "./actions/email-send";
@@ -21,6 +27,13 @@ import { filterCondition } from "./logic/filter-condition";
 import { branchCondition } from "./logic/branch-condition";
 import { transformData } from "./logic/transform-data";
 
+// New Logic Nodes
+import { iteratorLoop } from "./logic/iterator-loop";
+import { switchCase } from "./logic/switch-case";
+import { dataValidator } from "./logic/data-validator";
+import { aggregator } from "./logic/aggregator";
+import { router } from "./logic/router";
+
 // Communication & Messaging
 import { discordSendMessage } from "./actions/discord-send-message";
 import { teamsSendMessage } from "./actions/teams-send-message";
@@ -30,6 +43,9 @@ import { telegramSendMessage } from "./actions/telegram-send-message";
 import { postgresInsert } from "./actions/postgres-insert";
 import { sheetsAppendRow } from "./actions/sheets-append-row";
 import { airtableCreateRecord } from "./actions/airtable-create-record";
+import { googleSheetsAppend } from "./actions/google-sheets-append";
+import { databaseInsert } from "./actions/database-insert";
+import { databaseSelect } from "./actions/database-select";
 
 // Payments & Finance
 import { stripeCreatePayment } from "./actions/stripe-create-payment";
@@ -82,6 +98,10 @@ class IntegrationRegistry {
       manualTrigger,
       webhookTrigger,
       scheduleTrigger,
+      emailTrigger,
+      formTrigger,
+      databaseTrigger,
+      fileWatcherTrigger,
 
       // Actions
       slackSendMessage,
@@ -100,6 +120,9 @@ class IntegrationRegistry {
       postgresInsert,
       sheetsAppendRow,
       airtableCreateRecord,
+      googleSheetsAppend,
+      databaseInsert,
+      databaseSelect,
 
       // Payments & Finance
       stripeCreatePayment,
@@ -142,6 +165,11 @@ class IntegrationRegistry {
       filterCondition,
       branchCondition,
       transformData,
+      iteratorLoop,
+      switchCase,
+      dataValidator,
+      aggregator,
+      router,
     ]);
   }
 

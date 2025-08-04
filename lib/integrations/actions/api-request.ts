@@ -1,5 +1,5 @@
-import { createIntegration } from '../utils';
-import type { Integration } from '../types';
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
 
 export const apiRequest: Integration = createIntegration({
   id: "api_request",
@@ -76,4 +76,4 @@ export const apiRequest: Integration = createIntegration({
       };
     },
   },
-}); 
+});

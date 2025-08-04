@@ -104,9 +104,9 @@ const NodeLibraryPanel = () => {
       if (!searchTerm) {
         return {
           templates: allTemplates.slice(0, 2), // Show first 2
-          triggers: allTriggers.slice(0, 3), // Show first 3
-          actions: allActions.slice(0, 3), // Show first 3
-          logic: allLogic.slice(0, 3), // Show first 3
+          triggers: allTriggers, // Show all triggers
+          actions: allActions.slice(0, 8), // Show first 8
+          logic: allLogic, // Show all logic components
         };
       } else {
         // Search across all categories
@@ -235,7 +235,11 @@ const NodeLibraryPanel = () => {
     items: (Integration | WorkflowTemplate)[],
     totalCount: number
   ) => {
-    const showViewAll = totalCount > items.length && !searchTerm;
+    // Show "View all" only for templates and actions, since triggers and logic show all by default
+    const showViewAll =
+      (categoryKey === "templates" || categoryKey === "actions") &&
+      totalCount > items.length &&
+      !searchTerm;
 
     return (
       <div key={categoryKey}>
@@ -246,9 +250,14 @@ const NodeLibraryPanel = () => {
           {showViewAll && (
             <button
               onClick={() => navigateToCategory(categoryKey)}
-              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors flex items-center gap-1"
             >
-              View all {totalCount}
+              View All ({totalCount}){" "}
+              {getIcon(
+                "arrow-left",
+                "w-3 h-3 rotate-180",
+                "text-[var(--muted-foreground)]"
+              )}
             </button>
           )}
         </div>
