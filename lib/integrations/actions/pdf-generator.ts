@@ -133,7 +133,7 @@ export const pdfGenerator: Integration = createIntegration({
       const outputFilename =
         (config.output_filename as string) || `document_${Date.now()}.pdf`;
 
-      let pdfContent: unknown = null;
+      let pdfContent: unknown = null; // Used for future PDF content processing
       let mergeFiles: string[] = [];
 
       switch (templateType) {

@@ -172,11 +172,11 @@ export const imageProcessor: Integration = createIntegration({
 
       const operation = config.operation as string;
       const imageUrl = config.image_url as string;
-      const imageBase64 = config.image_base64 as string;
+      const imageBase64 = config.image_base64 as string; // Used for future base64 processing
       const width = config.width as number;
       const height = config.height as number;
       const maintainAspectRatio =
-        (config.maintain_aspect_ratio as boolean) || true;
+        (config.maintain_aspect_ratio as boolean) || true; // Used for future aspect ratio logic
       const outputFormat = (config.output_format as string) || "jpeg";
       const quality = (config.quality as number) || 85;
       const ocrLanguage = (config.ocr_language as string) || "eng";

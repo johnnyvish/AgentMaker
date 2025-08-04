@@ -20,7 +20,8 @@ export const databaseInsert: Integration = createIntegration({
         key: "connection_string",
         type: "text",
         label: "Database Connection String",
-        placeholder: "postgresql://user:pass@host:5432/db or mysql://user:pass@host:3306/db",
+        placeholder:
+          "postgresql://user:pass@host:5432/db or mysql://user:pass@host:3306/db",
         required: true,
         validation: (value: unknown) => {
           if (typeof value !== "string" || value.trim().length === 0) {
@@ -46,7 +47,8 @@ export const databaseInsert: Integration = createIntegration({
         key: "data",
         type: "textarea",
         label: "Data to Insert (JSON)",
-        placeholder: '{"name": "John Doe", "email": "john@example.com", "age": 30}',
+        placeholder:
+          '{"name": "John Doe", "email": "john@example.com", "age": 30}',
         required: true,
         supportExpressions: true,
         validation: (value: unknown) => {
@@ -55,11 +57,15 @@ export const databaseInsert: Integration = createIntegration({
           }
           try {
             const parsed = JSON.parse(value);
-            if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+            if (
+              typeof parsed !== "object" ||
+              parsed === null ||
+              Array.isArray(parsed)
+            ) {
               return "Data must be a JSON object";
             }
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -103,14 +109,14 @@ export const databaseInsert: Integration = createIntegration({
     async execute(config) {
       // Simulate database operation delay
       await new Promise((resolve) => setTimeout(resolve, 800));
-      
+
       const connectionString = config.connection_string as string;
       const tableName = config.table_name as string;
       const returnFields = config.return_fields as string;
       const onConflict = config.on_conflict as string;
       const conflictFields = config.conflict_fields as string;
-      const batchMode = config.batch_mode as boolean || false;
-      
+      const batchMode = (config.batch_mode as boolean) || false;
+
       let data: Record<string, unknown> = {};
       try {
         data = JSON.parse(config.data as string);
@@ -124,7 +130,7 @@ export const databaseInsert: Integration = createIntegration({
             metadata: { nodeType: "action", subtype: "database_insert" },
           };
         }
-      } catch (e) {
+      } catch (_e) {
         return {
           success: false,
           error: "Invalid JSON format for data",
@@ -138,7 +144,7 @@ export const databaseInsert: Integration = createIntegration({
       // Mock database response
       const mockId = Math.floor(Math.random() * 1000000) + 1;
       const timestamp = new Date().toISOString();
-      
+
       const returnedData: Record<string, unknown> = {
         id: mockId,
         ...data,
@@ -149,9 +155,11 @@ export const databaseInsert: Integration = createIntegration({
       // Filter returned data based on return_fields
       let finalReturnedData = returnedData;
       if (returnFields) {
-        const fieldsToReturn = returnFields.split(",").map(field => field.trim());
+        const fieldsToReturn = returnFields
+          .split(",")
+          .map((field) => field.trim());
         finalReturnedData = Object.fromEntries(
-          Object.entries(returnedData).filter(([key]) => 
+          Object.entries(returnedData).filter(([key]) =>
             fieldsToReturn.includes(key)
           )
         );
@@ -164,9 +172,13 @@ export const databaseInsert: Integration = createIntegration({
           insertedRows: 1,
           returnedData: finalReturnedData,
           allReturnedData: returnedData,
-          returnFields: returnFields ? returnFields.split(",").map(f => f.trim()) : null,
+          returnFields: returnFields
+            ? returnFields.split(",").map((f) => f.trim())
+            : null,
           onConflict: onConflict || null,
-          conflictFields: conflictFields ? conflictFields.split(",").map(f => f.trim()) : null,
+          conflictFields: conflictFields
+            ? conflictFields.split(",").map((f) => f.trim())
+            : null,
           batchMode,
           executionTime: "45ms",
           timestamp,
@@ -192,16 +204,21 @@ export const databaseInsert: Integration = createIntegration({
       } else {
         try {
           const parsed = JSON.parse(config.data as string);
-          if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          if (
+            typeof parsed !== "object" ||
+            parsed === null ||
+            Array.isArray(parsed)
+          ) {
             errors.data = "Data must be a JSON object";
           }
-        } catch (e) {
+        } catch (_e) {
           errors.data = "Invalid JSON format for data";
         }
       }
 
       if (config.on_conflict === "update" && !config.conflict_fields) {
-        errors.conflict_fields = "Conflict fields are required when using update conflict resolution";
+        errors.conflict_fields =
+          "Conflict fields are required when using update conflict resolution";
       }
 
       return {
@@ -210,4 +227,4 @@ export const databaseInsert: Integration = createIntegration({
       };
     },
   },
-}); 
+});

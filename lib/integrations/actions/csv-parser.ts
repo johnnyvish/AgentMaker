@@ -186,7 +186,7 @@ export const csvParser: Integration = createIntegration({
         }
       }
 
-      // Format output
+      // Format output - note: output variable is used for future extensibility
       let output: unknown;
       switch (outputFormat) {
         case "csv":

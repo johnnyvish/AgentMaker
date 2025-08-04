@@ -5,26 +5,32 @@ import type { Integration } from "../types";
 function evaluateCondition(data: unknown, condition: string): boolean {
   // This is a simplified condition evaluator
   // In a real implementation, you'd use a proper expression evaluator like expr-eval or similar
-  
+
   // Handle simple equality checks
   if (condition.includes("===")) {
-    const [field, value] = condition.split("===").map(s => s.trim().replace(/['"]/g, ""));
+    const [field, value] = condition
+      .split("===")
+      .map((s) => s.trim().replace(/['"]/g, ""));
     const fieldValue = getFieldValue(data, field);
     return fieldValue === value;
   }
-  
+
   if (condition.includes("==")) {
-    const [field, value] = condition.split("==").map(s => s.trim().replace(/['"]/g, ""));
+    const [field, value] = condition
+      .split("==")
+      .map((s) => s.trim().replace(/['"]/g, ""));
     const fieldValue = getFieldValue(data, field);
     return fieldValue == value; // Loose equality
   }
-  
+
   if (condition.includes("!=")) {
-    const [field, value] = condition.split("!=").map(s => s.trim().replace(/['"]/g, ""));
+    const [field, value] = condition
+      .split("!=")
+      .map((s) => s.trim().replace(/['"]/g, ""));
     const fieldValue = getFieldValue(data, field);
     return fieldValue !== value;
   }
-  
+
   // Handle contains checks
   if (condition.includes(".includes(")) {
     const fieldMatch = condition.match(/(\w+)\.includes\(['"]([^'"]+)['"]\)/);
@@ -34,7 +40,7 @@ function evaluateCondition(data: unknown, condition: string): boolean {
       return typeof fieldValue === "string" && fieldValue.includes(value);
     }
   }
-  
+
   // Handle boolean checks
   if (condition.includes("=== true") || condition.includes("=== false")) {
     const field = condition.split("===")[0].trim();
@@ -42,17 +48,17 @@ function evaluateCondition(data: unknown, condition: string): boolean {
     const fieldValue = getFieldValue(data, field);
     return Boolean(fieldValue) === expectedValue;
   }
-  
+
   // Default to false for unrecognized conditions
   return false;
 }
 
 function getFieldValue(data: unknown, fieldPath: string): unknown {
   if (!fieldPath) return data;
-  
+
   const keys = fieldPath.split(".");
   let value: unknown = data;
-  
+
   for (const key of keys) {
     if (value && typeof value === "object" && key in value) {
       value = (value as Record<string, unknown>)[key];
@@ -60,7 +66,7 @@ function getFieldValue(data: unknown, fieldPath: string): unknown {
       return undefined;
     }
   }
-  
+
   return value;
 }
 
@@ -68,10 +74,10 @@ export const router: Integration = createIntegration({
   id: "router",
   name: "Router",
   category: "logic",
-  description: "Route data to multiple paths simultaneously", 
+  description: "Route data to multiple paths simultaneously",
   icon: "workflow",
   version: "1.0.0",
-  
+
   schema: {
     fields: [
       {
@@ -86,7 +92,8 @@ export const router: Integration = createIntegration({
         key: "routes",
         type: "textarea",
         label: "Route Configurations (JSON)",
-        placeholder: '{"urgent": {"condition": "priority === \\"high\\""}, "normal": {"condition": "priority === \\"normal\\""}}',
+        placeholder:
+          '{"urgent": {"condition": "priority === \\"high\\""}, "normal": {"condition": "priority === \\"normal\\""}}',
         required: true,
         validation: (value: unknown) => {
           if (typeof value !== "string") {
@@ -98,7 +105,7 @@ export const router: Integration = createIntegration({
               return "Routes must be a JSON object";
             }
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -129,14 +136,14 @@ export const router: Integration = createIntegration({
   executor: {
     async execute(config) {
       const inputData = config.input_data as unknown;
-      const routeToAll = config.route_to_all as boolean || false;
-      const includeMetadata = config.include_metadata as boolean || false;
+      const routeToAll = (config.route_to_all as boolean) || false;
+      const includeMetadata = (config.include_metadata as boolean) || false;
       const defaultRoute = config.default_route as string;
-      
+
       let routes = {};
       try {
         routes = JSON.parse(config.routes as string);
-      } catch (e) {
+      } catch (_e) {
         return {
           success: false,
           error: "Invalid routes JSON format",
@@ -153,13 +160,14 @@ export const router: Integration = createIntegration({
 
       // Evaluate each route condition
       for (const [routeName, routeConfig] of Object.entries(routes)) {
-        const condition = (routeConfig as Record<string, unknown>).condition as string;
-        
+        const condition = (routeConfig as Record<string, unknown>)
+          .condition as string;
+
         if (condition) {
           try {
             // Simple condition evaluation (in a real implementation, you'd use a proper expression evaluator)
             const isMatch = evaluateCondition(inputData, condition);
-            
+
             if (isMatch) {
               activeRoutes.push(routeName);
               routeResults[routeName] = {
@@ -169,7 +177,7 @@ export const router: Integration = createIntegration({
                 matched: true,
                 timestamp: new Date().toISOString(),
               };
-              
+
               if (includeMetadata) {
                 routingMetadata[routeName] = {
                   condition_evaluated: condition,
@@ -177,7 +185,7 @@ export const router: Integration = createIntegration({
                   evaluation_time: new Date().toISOString(),
                 };
               }
-              
+
               // If not routing to all, stop after first match
               if (!routeToAll) {
                 break;
@@ -247,7 +255,7 @@ export const router: Integration = createIntegration({
           if (typeof parsed !== "object" || parsed === null) {
             errors.routes = "Routes must be a JSON object";
           }
-        } catch (e) {
+        } catch (_e) {
           errors.routes = "Invalid JSON format for routes";
         }
       }
@@ -258,4 +266,4 @@ export const router: Integration = createIntegration({
       };
     },
   },
-}); 
+});

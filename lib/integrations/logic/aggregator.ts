@@ -234,7 +234,7 @@ export const aggregator: Integration = createIntegration({
           try {
             JSON.parse(value);
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -255,7 +255,7 @@ export const aggregator: Integration = createIntegration({
       if (config.filter_condition) {
         try {
           filterCondition = JSON.parse(config.filter_condition as string);
-        } catch (e) {
+        } catch (_e) {
           return {
             success: false,
             error: "Invalid filter condition JSON format",
@@ -371,7 +371,7 @@ export const aggregator: Integration = createIntegration({
       if (config.filter_condition) {
         try {
           JSON.parse(config.filter_condition as string);
-        } catch (e) {
+        } catch (_e) {
           errors.filter_condition = "Invalid JSON format for filter condition";
         }
       }

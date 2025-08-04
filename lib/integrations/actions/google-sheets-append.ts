@@ -46,7 +46,8 @@ export const googleSheetsAppend: Integration = createIntegration({
         key: "values",
         type: "textarea",
         label: "Data to Append (JSON Array)",
-        placeholder: '[["John", "Doe", "john@example.com"], ["Jane", "Smith", "jane@example.com"]]',
+        placeholder:
+          '[["John", "Doe", "john@example.com"], ["Jane", "Smith", "jane@example.com"]]',
         required: true,
         supportExpressions: true,
         validation: (value: unknown) => {
@@ -59,7 +60,7 @@ export const googleSheetsAppend: Integration = createIntegration({
               return "Values must be a JSON array";
             }
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -98,13 +99,14 @@ export const googleSheetsAppend: Integration = createIntegration({
     async execute(config) {
       // Simulate API call delay
       await new Promise((resolve) => setTimeout(resolve, 1200));
-      
+
       const spreadsheetId = config.spreadsheet_id as string;
       const range = config.range as string;
       const valueInputOption = (config.value_input_option as string) || "RAW";
       const insertDataOption = config.insert_data_option as string;
-      const includeValuesInResponse = config.include_values_in_response as boolean || false;
-      
+      const includeValuesInResponse =
+        (config.include_values_in_response as boolean) || false;
+
       let values: unknown[][] = [];
       try {
         values = JSON.parse(config.values as string);
@@ -118,7 +120,7 @@ export const googleSheetsAppend: Integration = createIntegration({
             metadata: { nodeType: "action", subtype: "google_sheets_append" },
           };
         }
-      } catch (e) {
+      } catch (_e) {
         return {
           success: false,
           error: "Invalid JSON format for values",
@@ -131,7 +133,7 @@ export const googleSheetsAppend: Integration = createIntegration({
 
       // Extract sheet name from range
       const sheetName = range.includes("!") ? range.split("!")[0] : range;
-      
+
       // Calculate the updated range
       const rowCount = values.length;
       const colCount = values[0]?.length || 0;
@@ -183,7 +185,7 @@ export const googleSheetsAppend: Integration = createIntegration({
           if (!Array.isArray(parsed)) {
             errors.values = "Values must be a JSON array";
           }
-        } catch (e) {
+        } catch (_e) {
           errors.values = "Invalid JSON format for values";
         }
       }
@@ -194,4 +196,4 @@ export const googleSheetsAppend: Integration = createIntegration({
       };
     },
   },
-}); 
+});

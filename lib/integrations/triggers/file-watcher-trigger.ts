@@ -8,9 +8,9 @@ export const fileWatcherTrigger: Integration = createIntegration({
   description: "Trigger when files are created, modified, or deleted",
   icon: "file-search",
   version: "1.0.0",
-  
+
   hasInputHandle: false,
-  
+
   schema: {
     fields: [
       {
@@ -75,7 +75,7 @@ export const fileWatcherTrigger: Integration = createIntegration({
               return "Ignore patterns must be a JSON array";
             }
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -88,14 +88,14 @@ export const fileWatcherTrigger: Integration = createIntegration({
     async execute(config) {
       // Simulate file watching delay
       await new Promise((resolve) => setTimeout(resolve, 600));
-      
+
       const path = config.path as string;
       const events = config.events as string;
       const filePattern = config.file_pattern as string;
-      const recursive = config.recursive as boolean || false;
-      const includeFileInfo = config.include_file_info as boolean || false;
+      const recursive = (config.recursive as boolean) || false;
+      const includeFileInfo = (config.include_file_info as boolean) || false;
       const maxFileSize = (config.max_file_size as number) || 100;
-      
+
       let ignorePatterns: string[] = [];
       if (config.ignore_patterns) {
         try {
@@ -125,16 +125,18 @@ export const fileWatcherTrigger: Integration = createIntegration({
           is_directory: false,
           relative_path: "data_2024_01_15.csv",
           absolute_path: path + "data_2024_01_15.csv",
-          file_info: includeFileInfo ? {
-            permissions: "rw-r--r--",
-            owner: "user",
-            group: "users",
-            inode: 12345,
-            device: 1,
-            hard_links: 1,
-            access_time: new Date().toISOString(),
-            change_time: new Date().toISOString(),
-          } : null,
+          file_info: includeFileInfo
+            ? {
+                permissions: "rw-r--r--",
+                owner: "user",
+                group: "users",
+                inode: 12345,
+                device: 1,
+                hard_links: 1,
+                access_time: new Date().toISOString(),
+                change_time: new Date().toISOString(),
+              }
+            : null,
         },
         {
           event_type: "modified",
@@ -147,16 +149,18 @@ export const fileWatcherTrigger: Integration = createIntegration({
           is_directory: false,
           relative_path: "config.json",
           absolute_path: path + "config.json",
-          file_info: includeFileInfo ? {
-            permissions: "rw-r--r--",
-            owner: "user",
-            group: "users",
-            inode: 12346,
-            device: 1,
-            hard_links: 1,
-            access_time: new Date().toISOString(),
-            change_time: new Date().toISOString(),
-          } : null,
+          file_info: includeFileInfo
+            ? {
+                permissions: "rw-r--r--",
+                owner: "user",
+                group: "users",
+                inode: 12346,
+                device: 1,
+                hard_links: 1,
+                access_time: new Date().toISOString(),
+                change_time: new Date().toISOString(),
+              }
+            : null,
         },
         {
           event_type: "created",
@@ -169,31 +173,37 @@ export const fileWatcherTrigger: Integration = createIntegration({
           is_directory: false,
           relative_path: "images/logo.png",
           absolute_path: path + "images/logo.png",
-          file_info: includeFileInfo ? {
-            permissions: "rw-r--r--",
-            owner: "user",
-            group: "users",
-            inode: 12347,
-            device: 1,
-            hard_links: 1,
-            access_time: new Date().toISOString(),
-            change_time: new Date().toISOString(),
-          } : null,
-        }
+          file_info: includeFileInfo
+            ? {
+                permissions: "rw-r--r--",
+                owner: "user",
+                group: "users",
+                inode: 12347,
+                device: 1,
+                hard_links: 1,
+                access_time: new Date().toISOString(),
+                change_time: new Date().toISOString(),
+              }
+            : null,
+        },
       ];
 
       // Filter events based on events setting
       let filteredEvents = mockFileEvents;
       if (events !== "all") {
-        filteredEvents = mockFileEvents.filter(event => event.event_type === events);
+        filteredEvents = mockFileEvents.filter(
+          (event) => event.event_type === events
+        );
       }
 
       // Apply file pattern filter if specified
       if (filePattern) {
         try {
           const regex = new RegExp(filePattern);
-          filteredEvents = filteredEvents.filter(event => regex.test(event.file_name));
-        } catch (e) {
+          filteredEvents = filteredEvents.filter((event) =>
+            regex.test(event.file_name)
+          );
+        } catch (_e) {
           return {
             success: false,
             error: "Invalid file pattern regex",
@@ -208,8 +218,8 @@ export const fileWatcherTrigger: Integration = createIntegration({
 
       // Apply ignore patterns
       if (ignorePatterns.length > 0) {
-        filteredEvents = filteredEvents.filter(event => {
-          return !ignorePatterns.some(pattern => {
+        filteredEvents = filteredEvents.filter((event) => {
+          return !ignorePatterns.some((pattern) => {
             // Simple glob-like pattern matching
             const regexPattern = pattern
               .replace(/\./g, "\\.")
@@ -222,15 +232,18 @@ export const fileWatcherTrigger: Integration = createIntegration({
       }
 
       // Apply max file size filter
-      filteredEvents = filteredEvents.filter(event => {
+      filteredEvents = filteredEvents.filter((event) => {
         const fileSizeMB = event.file_size / (1024 * 1024);
         return fileSizeMB <= maxFileSize;
       });
 
       // Apply recursive filter
       if (!recursive) {
-        filteredEvents = filteredEvents.filter(event => {
-          return !event.relative_path.includes("/") && !event.relative_path.includes("\\");
+        filteredEvents = filteredEvents.filter((event) => {
+          return (
+            !event.relative_path.includes("/") &&
+            !event.relative_path.includes("\\")
+          );
         });
       }
 
@@ -257,7 +270,10 @@ export const fileWatcherTrigger: Integration = createIntegration({
 
       if (!config.path) {
         errors.path = "Directory path is required";
-      } else if (typeof config.path !== "string" || config.path.trim().length === 0) {
+      } else if (
+        typeof config.path !== "string" ||
+        config.path.trim().length === 0
+      ) {
         errors.path = "Directory path must be a non-empty string";
       }
 
@@ -268,13 +284,15 @@ export const fileWatcherTrigger: Integration = createIntegration({
       if (config.file_pattern) {
         try {
           new RegExp(config.file_pattern as string);
-        } catch (e) {
+        } catch (_e) {
           errors.file_pattern = "Invalid file pattern regex";
         }
       }
 
-      if (config.max_file_size && 
-          (typeof config.max_file_size !== "number" || config.max_file_size <= 0)) {
+      if (
+        config.max_file_size &&
+        (typeof config.max_file_size !== "number" || config.max_file_size <= 0)
+      ) {
         errors.max_file_size = "Max file size must be a positive number";
       }
 
@@ -284,7 +302,7 @@ export const fileWatcherTrigger: Integration = createIntegration({
           if (!Array.isArray(parsed)) {
             errors.ignore_patterns = "Ignore patterns must be a JSON array";
           }
-        } catch (e) {
+        } catch (_e) {
           errors.ignore_patterns = "Invalid JSON format for ignore patterns";
         }
       }
@@ -295,4 +313,4 @@ export const fileWatcherTrigger: Integration = createIntegration({
       };
     },
   },
-}); 
+});

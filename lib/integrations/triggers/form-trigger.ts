@@ -8,9 +8,9 @@ export const formTrigger: Integration = createIntegration({
   description: "Trigger when forms are submitted",
   icon: "clipboard",
   version: "1.0.0",
-  
+
   hasInputHandle: false,
-  
+
   schema: {
     fields: [
       {
@@ -31,7 +31,8 @@ export const formTrigger: Integration = createIntegration({
         key: "field_filters",
         type: "textarea",
         label: "Field Filters (JSON)",
-        placeholder: '{"email": "required", "name": "required", "priority": "high"}',
+        placeholder:
+          '{"email": "required", "name": "required", "priority": "high"}',
         required: false,
         validation: (value: unknown) => {
           if (!value) return null;
@@ -41,7 +42,7 @@ export const formTrigger: Integration = createIntegration({
           try {
             JSON.parse(value);
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -66,16 +67,16 @@ export const formTrigger: Integration = createIntegration({
     async execute(config) {
       // Simulate form processing delay
       await new Promise((resolve) => setTimeout(resolve, 300));
-      
+
       const formId = config.form_id as string;
-      const includeMetadata = config.include_metadata as boolean || false;
-      const validateFields = config.validate_fields as boolean || false;
-      
+      const includeMetadata = (config.include_metadata as boolean) || false;
+      const validateFields = (config.validate_fields as boolean) || false;
+
       let fieldFilters = {};
       if (config.field_filters) {
         try {
           fieldFilters = JSON.parse(config.field_filters as string);
-        } catch (e) {
+        } catch (_e) {
           return {
             success: false,
             error: "Invalid field filters JSON format",
@@ -94,41 +95,50 @@ export const formTrigger: Integration = createIntegration({
         submitted_at: new Date().toISOString(),
         fields: {
           name: "John Doe",
-          email: "john@example.com", 
-          message: "I'm interested in your product and would like to schedule a demo. Please contact me at your earliest convenience.",
+          email: "john@example.com",
+          message:
+            "I'm interested in your product and would like to schedule a demo. Please contact me at your earliest convenience.",
           phone: "+1-555-0123",
           company: "Acme Corporation",
           priority: "high",
           budget: "50000-100000",
-          timeline: "3 months"
+          timeline: "3 months",
         },
-        metadata: includeMetadata ? {
-          user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-          ip_address: "192.168.1.100",
-          referrer: "https://google.com/search?q=automation+platform",
-          language: "en-US",
-          timezone: "America/New_York",
-          screen_resolution: "1920x1080",
-          form_load_time: "1.2s",
-          form_submit_time: "0.8s",
-          session_id: "sess_" + Math.random().toString(36).substr(2, 9),
-          utm_source: "google",
-          utm_medium: "cpc",
-          utm_campaign: "automation_2024"
-        } : {},
-        validation: validateFields ? {
-          is_valid: true,
-          errors: [],
-          warnings: []
-        } : null
+        metadata: includeMetadata
+          ? {
+              user_agent:
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              ip_address: "192.168.1.100",
+              referrer: "https://google.com/search?q=automation+platform",
+              language: "en-US",
+              timezone: "America/New_York",
+              screen_resolution: "1920x1080",
+              form_load_time: "1.2s",
+              form_submit_time: "0.8s",
+              session_id: "sess_" + Math.random().toString(36).substr(2, 9),
+              utm_source: "google",
+              utm_medium: "cpc",
+              utm_campaign: "automation_2024",
+            }
+          : {},
+        validation: validateFields
+          ? {
+              is_valid: true,
+              errors: [],
+              warnings: [],
+            }
+          : null,
       };
 
       // Apply field filters if specified
       if (Object.keys(fieldFilters).length > 0) {
         const filteredFields: Record<string, unknown> = {};
-        for (const [fieldName, filterValue] of Object.entries(fieldFilters)) {
+        for (const [fieldName, _filterValue] of Object.entries(fieldFilters)) {
           if (fieldName in mockSubmission.fields) {
-            filteredFields[fieldName] = mockSubmission.fields[fieldName as keyof typeof mockSubmission.fields];
+            filteredFields[fieldName] =
+              mockSubmission.fields[
+                fieldName as keyof typeof mockSubmission.fields
+              ];
           }
         }
         mockSubmission.fields = filteredFields as typeof mockSubmission.fields;
@@ -139,7 +149,8 @@ export const formTrigger: Integration = createIntegration({
         data: {
           ...mockSubmission,
           webhook_url: config.webhook_url || null,
-          field_filters: Object.keys(fieldFilters).length > 0 ? fieldFilters : null,
+          field_filters:
+            Object.keys(fieldFilters).length > 0 ? fieldFilters : null,
           include_metadata: includeMetadata,
           validate_fields: validateFields,
           trigger_time: new Date().toISOString(),
@@ -153,7 +164,10 @@ export const formTrigger: Integration = createIntegration({
 
       if (!config.form_id) {
         errors.form_id = "Form ID is required";
-      } else if (typeof config.form_id !== "string" || config.form_id.trim().length === 0) {
+      } else if (
+        typeof config.form_id !== "string" ||
+        config.form_id.trim().length === 0
+      ) {
         errors.form_id = "Form ID must be a non-empty string";
       }
 
@@ -163,7 +177,7 @@ export const formTrigger: Integration = createIntegration({
           if (typeof parsed !== "object" || parsed === null) {
             errors.field_filters = "Field filters must be a JSON object";
           }
-        } catch (e) {
+        } catch (_e) {
           errors.field_filters = "Invalid JSON format for field filters";
         }
       }
@@ -174,4 +188,4 @@ export const formTrigger: Integration = createIntegration({
       };
     },
   },
-}); 
+});

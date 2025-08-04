@@ -70,7 +70,7 @@ function validateField(
             if (value && typeof value === "string" && !regex.test(value)) {
               result.error = `Field '${fieldName}' failed regex validation: ${regexPattern}`;
             }
-          } catch (e) {
+          } catch (_e) {
             result.warning = `Invalid regex pattern for field '${fieldName}': ${regexPattern}`;
           }
         } else if (customRule.startsWith("range:")) {
@@ -124,7 +124,7 @@ export const dataValidator: Integration = createIntegration({
               return "Validation rules must be a JSON object";
             }
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -153,7 +153,7 @@ export const dataValidator: Integration = createIntegration({
               return "Custom validators must be a JSON object";
             }
             return null;
-          } catch (e) {
+          } catch (_e) {
             return "Invalid JSON format";
           }
         },
@@ -172,7 +172,7 @@ export const dataValidator: Integration = createIntegration({
 
       try {
         validationRules = JSON.parse(config.validation_rules as string);
-      } catch (e) {
+      } catch (_e) {
         return {
           success: false,
           error: "Invalid validation rules JSON format",
@@ -186,7 +186,7 @@ export const dataValidator: Integration = createIntegration({
       if (config.custom_validators) {
         try {
           customValidators = JSON.parse(config.custom_validators as string);
-        } catch (e) {
+        } catch (_e) {
           return {
             success: false,
             error: "Invalid custom validators JSON format",
@@ -259,7 +259,7 @@ export const dataValidator: Integration = createIntegration({
           if (typeof parsed !== "object" || parsed === null) {
             errors.validation_rules = "Validation rules must be a JSON object";
           }
-        } catch (e) {
+        } catch (_e) {
           errors.validation_rules = "Invalid JSON format for validation rules";
         }
       }
@@ -271,7 +271,7 @@ export const dataValidator: Integration = createIntegration({
             errors.custom_validators =
               "Custom validators must be a JSON object";
           }
-        } catch (e) {
+        } catch (_e) {
           errors.custom_validators =
             "Invalid JSON format for custom validators";
         }

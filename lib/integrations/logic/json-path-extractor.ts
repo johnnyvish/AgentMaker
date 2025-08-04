@@ -15,7 +15,8 @@ export const jsonPathExtractor: Integration = createIntegration({
         key: "json_data",
         type: "textarea",
         label: "JSON Data",
-        placeholder: '{"users": [{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]}',
+        placeholder:
+          '{"users": [{"id": 1, "name": "John"}, {"id": 2, "name": "Jane"}]}',
         required: true,
         supportExpressions: true,
       },
@@ -86,12 +87,12 @@ export const jsonPathExtractor: Integration = createIntegration({
     async execute(config) {
       await new Promise((resolve) => setTimeout(resolve, 400));
       const timestamp = new Date().toISOString();
-      
+
       const jsonData = config.json_data as string;
       const jsonPath = config.json_path as string;
       const extractionMode = (config.extraction_mode as string) || "multiple";
       const outputFormat = (config.output_format as string) || "json";
-      const defaultValue = config.default_value as string || null;
+      const defaultValue = (config.default_value as string) || null;
       const flattenResults = (config.flatten_results as boolean) || false;
       const caseSensitive = (config.case_sensitive as boolean) !== false;
       const maxResults = (config.max_results as number) || 100;
@@ -121,21 +122,23 @@ export const jsonPathExtractor: Integration = createIntegration({
       let formattedResult = extractedValues;
       switch (outputFormat) {
         case "array":
-          formattedResult = Array.isArray(extractedValues) ? extractedValues : [extractedValues];
+          formattedResult = Array.isArray(extractedValues)
+            ? extractedValues
+            : [extractedValues];
           break;
         case "string":
-          formattedResult = Array.isArray(extractedValues) 
-            ? extractedValues.join(", ") 
+          formattedResult = Array.isArray(extractedValues)
+            ? extractedValues.join(", ")
             : String(extractedValues);
           break;
         case "number":
           formattedResult = Array.isArray(extractedValues)
-            ? extractedValues.map(v => Number(v)).filter(n => !isNaN(n))
+            ? extractedValues.map((v) => Number(v)).filter((n) => !isNaN(n))
             : Number(extractedValues);
           break;
         case "boolean":
           formattedResult = Array.isArray(extractedValues)
-            ? extractedValues.map(v => Boolean(v))
+            ? extractedValues.map((v) => Boolean(v))
             : Boolean(extractedValues);
           break;
       }
@@ -145,7 +148,9 @@ export const jsonPathExtractor: Integration = createIntegration({
         formattedResult = this.flattenArray(formattedResult);
       }
 
-      const extractorId = `jsonpath_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const extractorId = `jsonpath_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
 
       return {
         success: true,
@@ -161,50 +166,66 @@ export const jsonPathExtractor: Integration = createIntegration({
           originalData: parsedData,
           extractedValues,
           formattedResult,
-          resultCount: Array.isArray(formattedResult) ? formattedResult.length : 1,
-          hasResults: Array.isArray(formattedResult) ? formattedResult.length > 0 : !!formattedResult,
+          resultCount: Array.isArray(formattedResult)
+            ? formattedResult.length
+            : 1,
+          hasResults: Array.isArray(formattedResult)
+            ? formattedResult.length > 0
+            : !!formattedResult,
           timestamp,
         },
         metadata: { nodeType: "logic", subtype: "json_path_extractor" },
       };
     },
 
-    mockJsonPathExtract(data: unknown, path: string, options: {
-      extractionMode: string;
-      maxResults: number;
-      caseSensitive: boolean;
-    }): unknown {
+    mockJsonPathExtract(
+      data: unknown,
+      path: string,
+      options: {
+        extractionMode: string;
+        maxResults: number;
+        caseSensitive: boolean;
+      }
+    ): unknown {
       // Simple mock implementation for common JSONPath patterns
       const pathLower = path.toLowerCase();
-      
+
       if (pathLower.includes("$.") && pathLower.includes("[*]")) {
         // Array extraction pattern
         const parts = path.split("[*]");
         if (parts.length >= 2) {
           const field = parts[1].replace(/[^a-zA-Z0-9_]/g, "");
           if (Array.isArray(data)) {
-            return data.slice(0, options.maxResults).map(item => 
-              typeof item === "object" && item ? (item as any)[field] : null
-            ).filter(v => v !== null);
+            return data
+              .slice(0, options.maxResults)
+              .map((item) =>
+                typeof item === "object" && item
+                  ? (item as Record<string, unknown>)[field]
+                  : null
+              )
+              .filter((v) => v !== null);
           }
         }
       }
-      
+
       if (pathLower.includes("$.") && !pathLower.includes("[*]")) {
         // Single field extraction
         const field = path.replace("$.", "").replace(/[^a-zA-Z0-9_]/g, "");
         if (typeof data === "object" && data) {
-          return (data as any)[field];
+          return (data as Record<string, unknown>)[field];
         }
       }
-      
+
       if (pathLower === "$") {
         // Root object
         return data;
       }
-      
+
       // Default mock response
-      return ["mock_value_1", "mock_value_2", "mock_value_3"].slice(0, options.maxResults);
+      return ["mock_value_1", "mock_value_2", "mock_value_3"].slice(
+        0,
+        options.maxResults
+      );
     },
 
     flattenArray(arr: unknown[]): unknown[] {
@@ -236,7 +257,10 @@ export const jsonPathExtractor: Integration = createIntegration({
         errors.json_path = "JSONPath expression is required";
       }
 
-      if (config.max_results && (typeof config.max_results !== "number" || config.max_results <= 0)) {
+      if (
+        config.max_results &&
+        (typeof config.max_results !== "number" || config.max_results <= 0)
+      ) {
         errors.max_results = "Maximum results must be a positive number";
       }
 
@@ -246,4 +270,4 @@ export const jsonPathExtractor: Integration = createIntegration({
       };
     },
   },
-}); 
+});
