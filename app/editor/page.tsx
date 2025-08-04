@@ -711,14 +711,16 @@ function WorkflowEditorContent() {
             </div>
           </div>
         )}
+
+        {/* Chat Panel */}
+        <ChatPanel
+          isOpen={showChatPanel}
+          onClose={() => setShowChatPanel(false)}
+        />
       </div>
 
-      {/* Chat Components */}
+      {/* Chat Button */}
       <ChatButton onClick={() => setShowChatPanel(true)} />
-      <ChatPanel
-        isOpen={showChatPanel}
-        onClose={() => setShowChatPanel(false)}
-      />
     </div>
   );
 }
