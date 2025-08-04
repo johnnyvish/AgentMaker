@@ -31,6 +31,8 @@ import TopBar from "./components/TopBar";
 import NodeLibraryPanel from "./components/NodeLibraryPanel";
 import ConfigurationPanel from "./components/ConfigurationPanel";
 import ExecutionPanel from "./components/ExecutionPanel";
+import ChatButton from "./components/ChatButton";
+import ChatPanel from "./components/ChatPanel";
 import {
   AutomationProvider,
   useAutomationContext,
@@ -201,12 +203,135 @@ const ConditionNode = ({
   <BaseNode data={data} selected={selected} icon={data.icon || "diamond"} />
 );
 
+const BranchNode = ({
+  data,
+  selected,
+}: {
+  data: NodeData;
+  selected: boolean;
+}) => {
+  const getStatusIndicator = () => {
+    switch (data.status) {
+      case "running":
+        return <div className="w-2 h-2 bg-black rounded-full animate-pulse" />;
+      case "success":
+        return <div className="w-2 h-2 bg-green-500 rounded-full" />;
+      case "error":
+        return <div className="w-2 h-2 bg-red-500 rounded-full" />;
+      default:
+        return <div className="w-2 h-2 bg-gray-300 rounded-full" />;
+    }
+  };
+
+  const getIconComponent = () => {
+    const colorClass = data.colorClass || "text-[var(--foreground)]";
+    return getIcon(data.icon || "diamond", "w-5 h-5", colorClass);
+  };
+
+  const getBorderClasses = () => {
+    if (selected) {
+      return (
+        data.selectedBorderClass ||
+        "border-gray-800 dark:border-gray-200 shadow-lg ring-1 ring-gray-500/20 dark:ring-gray-400/20"
+      );
+    } else {
+      return (
+        data.borderClass ||
+        "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+      );
+    }
+  };
+
+  return (
+    <div
+      className={`
+        relative bg-[var(--card)] rounded-xl shadow-sm border transition-all duration-200
+        min-w-[180px] px-5 py-4 group hover:shadow-md
+        ${getBorderClasses()}
+      `}
+    >
+      {/* Input handle */}
+      <Handle
+        type="target"
+        position={Position.Left}
+        style={{
+          background: "#6b7280",
+          width: 12,
+          height: 12,
+          border: "2px solid white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+        }}
+        className="hover:bg-gray-600 transition-colors"
+      />
+
+      {/* True output handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="true"
+        style={{
+          background: "#22c55e",
+          width: 12,
+          height: 12,
+          border: "2px solid white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          top: "40%",
+        }}
+        className="hover:bg-green-600 transition-colors"
+      />
+      {/* False output handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="false"
+        style={{
+          background: "#ef4444",
+          width: 12,
+          height: 12,
+          border: "2px solid white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          top: "60%",
+        }}
+        className="hover:bg-red-600 transition-colors"
+      />
+
+      {/* Status indicator */}
+      <div className="absolute top-3 right-3">{getStatusIndicator()}</div>
+
+      {/* Content */}
+      <div className="pr-6">
+        <div className="flex items-center gap-3 mb-2">
+          {getIconComponent()}
+          <h3 className="font-medium text-[var(--foreground)] leading-tight">
+            {data.label}
+          </h3>
+        </div>
+
+        <p className="text-sm text-[var(--muted-foreground)] leading-relaxed max-w-[200px] break-words">
+          {data.description || "Not configured"}
+        </p>
+
+        {data.lastRun && (
+          <p className="text-xs text-[var(--muted-foreground)] mt-2">
+            {data.lastRun}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+};
+
 // Register custom node types
 const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   condition: ConditionNode,
-  logic: ConditionNode, // Logic nodes should use the ConditionNode component
+  logic: (props) => {
+    if (props.data.subtype === "branch_condition") {
+      return <BranchNode {...props} />;
+    }
+    return <ConditionNode {...props} />;
+  },
 };
 
 // ============================================
@@ -227,11 +352,13 @@ function WorkflowEditorContent() {
     selectedNode,
     sidebarOpen,
     showExecutionPanel,
+    showChatPanel,
     setNodes,
     setEdges,
     setSelectedNode,
     setSidebarOpen,
     setShowExecutionPanel,
+    setShowChatPanel,
     setWorkflowName,
     setCurrentWorkflowId,
     restoreLatestExecution,
@@ -255,7 +382,6 @@ function WorkflowEditorContent() {
               setWorkflowName(automation.name);
               setCurrentWorkflowId(automation.id);
 
-              // 🎯 THE MISSING PIECE: Restore execution state
               try {
                 const restoredExecution = await restoreLatestExecution(
                   automation.id
@@ -351,7 +477,18 @@ function WorkflowEditorContent() {
         addEdge(
           {
             ...params,
-            style: { stroke: "#d1d5db", strokeWidth: 2 },
+            id: `${params.source}-${params.sourceHandle || "default"}-${
+              params.target
+            }`,
+            style: {
+              stroke:
+                params.sourceHandle === "true"
+                  ? "#22c55e"
+                  : params.sourceHandle === "false"
+                  ? "#ef4444"
+                  : "#d1d5db",
+              strokeWidth: 2,
+            },
             animated: false,
           } as Edge,
           eds
@@ -438,10 +575,21 @@ function WorkflowEditorContent() {
         }));
 
         const newEdges = template.edges.map((e) => ({
-          id: `${idMap.get(e.source)}-${idMap.get(e.target)}`,
+          id: `${idMap.get(e.source)}-${
+            e.sourceHandle || "default"
+          }-${idMap.get(e.target)}`,
           source: idMap.get(e.source)!,
           target: idMap.get(e.target)!,
-          style: { stroke: "#d1d5db", strokeWidth: 2 },
+          sourceHandle: e.sourceHandle,
+          style: {
+            stroke:
+              e.sourceHandle === "true"
+                ? "#22c55e"
+                : e.sourceHandle === "false"
+                ? "#ef4444"
+                : "#d1d5db",
+            strokeWidth: 2,
+          },
           animated: false,
         }));
 
@@ -553,7 +701,7 @@ function WorkflowEditorContent() {
 
         {/* RIGHT SIDEBAR - Configuration or Execution Panel */}
         {(selectedNode || showExecutionPanel) && (
-          <div className="w-80 bg-[var(--card)] border-l border-[var(--border)] overflow-y-auto">
+          <div className="w-80 bg-[var(--card)] border-l border-[var(--border)] overflow-y-auto z-[60]">
             <div className="p-6">
               {showExecutionPanel ? (
                 <ExecutionPanel />
@@ -564,6 +712,13 @@ function WorkflowEditorContent() {
           </div>
         )}
       </div>
+
+      {/* Chat Components */}
+      <ChatButton onClick={() => setShowChatPanel(true)} />
+      <ChatPanel
+        isOpen={showChatPanel}
+        onClose={() => setShowChatPanel(false)}
+      />
     </div>
   );
 }

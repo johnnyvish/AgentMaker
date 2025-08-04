@@ -42,17 +42,19 @@ export const branchCondition: Integration = createIntegration({
     async execute(config, ctx: WorkflowContext) {
       // The condition should already be interpolated by the registry
       const condition = config.condition as string;
-      
+
       // Parse the condition to replace variables
       const interpolatedCondition = parseExpression(condition, ctx, true);
-      
+
       let conditionResult = false;
-      try { 
-        conditionResult = Function(`"use strict"; return (${interpolatedCondition});`)(); 
-      } catch (error) { 
-        console.warn('Branch condition evaluation failed:', error);
+      try {
+        conditionResult = Function(
+          `"use strict"; return (${interpolatedCondition});`
+        )();
+      } catch (error) {
+        console.warn("Branch condition evaluation failed:", error);
       }
-      
+
       const timestamp = new Date().toISOString();
 
       return {

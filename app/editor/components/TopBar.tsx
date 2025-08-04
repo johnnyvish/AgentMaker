@@ -6,6 +6,7 @@ import { getIcon } from "../../../hooks/useIcons";
 import { useAutomationContext } from "../context/AutomationContext";
 import { useThemeToggle } from "../../../hooks/useThemeToggle";
 import { useState } from "react";
+import { Node } from "@xyflow/react";
 
 const TopBar = () => {
   const {
@@ -18,6 +19,7 @@ const TopBar = () => {
     lastSaveError,
     showExecutionPanel,
     setWorkflowName,
+    setNodes,
     setShowExecutionPanel,
     handleTitleEdit,
     handleTitleSave,
@@ -27,16 +29,31 @@ const TopBar = () => {
   } = useAutomationContext();
 
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
-
   const { theme, toggleTheme, mounted } = useThemeToggle();
 
   const handleExecuteWorkflow = async () => {
     const onNodeStatusChange = (
       nodeId: string,
-      status: "idle" | "running" | "success" | "error"
+      status: "idle" | "running" | "success" | "error",
+      lastRun?: string,
+      executionResult?: Record<string, unknown>
     ) => {
-      // This will be handled by the context
-      console.log("Node status change:", nodeId, status);
+      // Update the node status in the nodes array
+      setNodes((prevNodes: Node[]) =>
+        prevNodes.map((node: Node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  status,
+                  lastRun,
+                  executionResult,
+                },
+              }
+            : node
+        )
+      );
     };
 
     setShowExecutionPanel(true);
@@ -46,7 +63,6 @@ const TopBar = () => {
   const handleManualSave = async () => {
     try {
       await saveWorkflow(nodes, edges, workflowName);
-      // Show success feedback
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000); // Hide after 2 seconds
     } catch (error) {
@@ -55,9 +71,9 @@ const TopBar = () => {
   };
 
   return (
-    <div className="bg-[var(--card)] border-b border-[var(--border)] px-6 py-4">
+    <div className="bg-[var(--card)] border-b border-[var(--border)] px-3 sm:px-6 py-3 sm:py-4">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           {/* Home Button */}
           <Link
             href="/"
@@ -67,7 +83,7 @@ const TopBar = () => {
             {getIcon("dashboard", "w-6 h-6", "text-[var(--foreground)]")}
           </Link>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             {isEditingTitle ? (
               <input
                 type="text"
@@ -75,12 +91,12 @@ const TopBar = () => {
                 onChange={(e) => setWorkflowName(e.target.value)}
                 onBlur={handleTitleSave}
                 onKeyDown={handleTitleKeyDown}
-                className="text-xl font-semibold text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md shadow-sm focus:border-[var(--ring)] focus:ring-1 focus:ring-[var(--ring)] focus:outline-none px-3 py-1"
+                className="text-lg sm:text-xl font-semibold text-[var(--foreground)] bg-[var(--card)] border border-[var(--border)] rounded-md shadow-sm focus:border-[var(--ring)] focus:ring-1 focus:ring-[var(--ring)] focus:outline-none px-2 sm:px-3 py-1"
                 autoFocus
               />
             ) : (
               <h1
-                className="text-xl font-semibold text-[var(--foreground)] cursor-pointer hover:text-[var(--muted-foreground)] transition-colors px-1 py-0.5 rounded"
+                className="text-lg sm:text-xl font-semibold text-[var(--foreground)] cursor-pointer hover:text-[var(--muted-foreground)] transition-colors px-1 py-0.5 rounded"
                 onClick={handleTitleEdit}
                 title="Click to edit title"
               >
@@ -89,25 +105,20 @@ const TopBar = () => {
             )}
 
             {/* Auto-save status indicator */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {isSaving && (
-                <div className="flex items-center gap-1 text-sm text-[var(--muted-foreground)]">
+                <div className="flex items-center gap-1 text-xs sm:text-sm text-[var(--muted-foreground)]">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  <span>Saving...</span>
-                </div>
-              )}
-              {!isSaving && nodes.length > 0 && !lastSaveError && (
-                <div className="flex items-center gap-1 text-sm text-green-600 dark:text-green-400">
-                  <CheckCircle className="w-3 h-3" />
+                  <span className="hidden sm:inline">Saving...</span>
                 </div>
               )}
               {lastSaveError && (
                 <div
-                  className="flex items-center gap-1 text-sm text-red-600 dark:text-red-400"
+                  className="flex items-center gap-1 text-xs sm:text-sm text-red-600 dark:text-red-400"
                   title={lastSaveError}
                 >
                   <AlertCircle className="w-3 h-3" />
-                  <span>Save failed</span>
+                  <span className="hidden sm:inline">Save failed</span>
                 </div>
               )}
             </div>
@@ -115,7 +126,7 @@ const TopBar = () => {
         </div>
 
         {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-3">
           {mounted && (
             <button
               onClick={toggleTheme}
@@ -165,7 +176,7 @@ const TopBar = () => {
           <button
             onClick={handleManualSave}
             disabled={isSaving}
-            className={`px-3 py-2 text-sm font-medium rounded-lg transition-colors min-w-[80px] ${
+            className={`px-2 sm:px-3 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors min-w-[60px] sm:min-w-[80px] ${
               isSaving
                 ? "bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed"
                 : showSaveSuccess
@@ -177,39 +188,39 @@ const TopBar = () => {
           >
             {isSaving ? (
               <div className="flex items-center justify-center">
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Saving...
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                <span className="hidden sm:inline">Saving...</span>
               </div>
             ) : showSaveSuccess ? (
               <div className="flex items-center justify-center">
-                <CheckCircle className="w-4 h-4 mr-2" />
-                Saved!
+                <CheckCircle className="w-4 h-4 sm:mr-2" />
+                <span className="hidden sm:inline">Saved!</span>
               </div>
             ) : (
               <div className="flex items-center justify-center">
-                {getIcon("save", "w-4 h-4", "mr-2")}
-                Save
+                {getIcon("save", "w-4 h-4", "sm:mr-2")}
+                <span className="hidden sm:inline">Save</span>
               </div>
             )}
           </button>
           <button
             onClick={handleExecuteWorkflow}
             disabled={isExecuting}
-            className={`px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors ${
               isExecuting
                 ? "bg-[var(--muted)] text-[var(--muted-foreground)] cursor-not-allowed"
                 : "bg-[var(--primary)] text-[var(--primary-foreground)] hover:bg-[var(--primary)]/90"
             }`}
           >
             {isExecuting ? (
-              <div className="flex items-center">
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Running...
+              <div className="flex items-center justify-center">
+                <Loader2 className="w-4 h-4 sm:mr-2 animate-spin" />
+                <span className="hidden sm:inline">Running...</span>
               </div>
             ) : (
-              <div className="flex items-center">
-                {getIcon("play", "w-4 h-4", "mr-2")}
-                Run
+              <div className="flex items-center justify-center">
+                {getIcon("play", "w-4 h-4", "sm:mr-2")}
+                <span className="hidden sm:inline">Run</span>
               </div>
             )}
           </button>

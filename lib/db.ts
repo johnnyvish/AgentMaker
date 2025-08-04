@@ -409,13 +409,30 @@ export async function createExecutionStep(
 ): Promise<string> {
   try {
     const stepResult = await pool.query(
-      "INSERT INTO execution_steps (execution_id, node_id, status, started_at) VALUES ($1, $2, $3, NOW()) RETURNING *",
-      [executionId, nodeId, "running"]
+      "INSERT INTO execution_steps (execution_id, node_id, status) VALUES ($1, $2, $3) RETURNING *",
+      [executionId, nodeId, "pending"]
     );
     return stepResult.rows[0].id;
   } catch (error) {
     console.error("Failed to create execution step:", error);
     throw new Error("Failed to create execution step");
+  }
+}
+
+/**
+ * Update execution step to running
+ */
+export async function updateExecutionStepToRunning(
+  stepId: string
+): Promise<void> {
+  try {
+    await pool.query(
+      "UPDATE execution_steps SET status = $1, started_at = NOW() WHERE id = $2",
+      ["running", stepId]
+    );
+  } catch (error) {
+    console.error("Failed to update execution step to running:", error);
+    throw new Error("Failed to update execution step");
   }
 }
 

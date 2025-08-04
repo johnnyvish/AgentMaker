@@ -803,7 +803,7 @@ Type: .tsx
 ----- Content Start -----
 "use client";
 
-import { useCallback, useEffect, DragEvent } from "react";
+import { useCallback, useEffect, DragEvent, Suspense } from "react";
 import { useThemeToggle } from "../../hooks/useThemeToggle";
 import { getIcon } from "../../hooks/useIcons";
 import { useSearchParams } from "next/navigation";
@@ -1004,12 +1004,63 @@ const ConditionNode = ({
   <BaseNode data={data} selected={selected} icon={data.icon || "diamond"} />
 );
 
+const BranchNode = ({
+  data,
+  selected,
+}: {
+  data: NodeData;
+  selected: boolean;
+}) => {
+  const baseNodeProps = { data, selected, icon: data.icon || "diamond" };
+
+  return (
+    <div className="relative">
+      <BaseNode {...baseNodeProps} />
+      {/* True output handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="true"
+        style={{
+          background: "#22c55e",
+          width: 12,
+          height: 12,
+          border: "2px solid white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          top: "30%",
+        }}
+        className="hover:bg-green-600 transition-colors"
+      />
+      {/* False output handle */}
+      <Handle
+        type="source"
+        position={Position.Right}
+        id="false"
+        style={{
+          background: "#ef4444",
+          width: 12,
+          height: 12,
+          border: "2px solid white",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          top: "70%",
+        }}
+        className="hover:bg-red-600 transition-colors"
+      />
+    </div>
+  );
+};
+
 // Register custom node types
 const nodeTypes: NodeTypes = {
   trigger: TriggerNode,
   action: ActionNode,
   condition: ConditionNode,
-  logic: ConditionNode, // Logic nodes should use the ConditionNode component
+  logic: (props) => {
+    if (props.data.subtype === "branch_condition") {
+      return <BranchNode {...props} />;
+    }
+    return <ConditionNode {...props} />;
+  },
 };
 
 // ============================================
@@ -1154,7 +1205,18 @@ function WorkflowEditorContent() {
         addEdge(
           {
             ...params,
-            style: { stroke: "#d1d5db", strokeWidth: 2 },
+            id: `${params.source}-${params.sourceHandle || "default"}-${
+              params.target
+            }`,
+            style: {
+              stroke:
+                params.sourceHandle === "true"
+                  ? "#22c55e"
+                  : params.sourceHandle === "false"
+                  ? "#ef4444"
+                  : "#d1d5db",
+              strokeWidth: 2,
+            },
             animated: false,
           } as Edge,
           eds
@@ -1241,10 +1303,21 @@ function WorkflowEditorContent() {
         }));
 
         const newEdges = template.edges.map((e) => ({
-          id: `${idMap.get(e.source)}-${idMap.get(e.target)}`,
+          id: `${idMap.get(e.source)}-${
+            e.sourceHandle || "default"
+          }-${idMap.get(e.target)}`,
           source: idMap.get(e.source)!,
           target: idMap.get(e.target)!,
-          style: { stroke: "#d1d5db", strokeWidth: 2 },
+          sourceHandle: e.sourceHandle,
+          style: {
+            stroke:
+              e.sourceHandle === "true"
+                ? "#22c55e"
+                : e.sourceHandle === "false"
+                ? "#ef4444"
+                : "#d1d5db",
+            strokeWidth: 2,
+          },
           animated: false,
         }));
 
@@ -1295,7 +1368,7 @@ function WorkflowEditorContent() {
 
       setNodes((nds: Node[]) => [...nds, newNode]);
     },
-    [screenToFlowPosition, setNodes, setEdges]
+    [screenToFlowPosition, setNodes, setEdges, nodes]
   );
 
   // ============================================
@@ -1386,7 +1459,9 @@ export default function App() {
 
   return (
     <ReactFlowProvider>
-      <WorkflowEditor />
+      <Suspense fallback={<div>Loading...</div>}>
+        <WorkflowEditor />
+      </Suspense>
     </ReactFlowProvider>
   );
 }
@@ -1893,6 +1968,7 @@ import { getIcon } from "../../../hooks/useIcons";
 import { useAutomationContext } from "../context/AutomationContext";
 import { useThemeToggle } from "../../../hooks/useThemeToggle";
 import { useState } from "react";
+import { Node } from "@xyflow/react";
 
 const TopBar = () => {
   const {
@@ -1905,6 +1981,7 @@ const TopBar = () => {
     lastSaveError,
     showExecutionPanel,
     setWorkflowName,
+    setNodes,
     setShowExecutionPanel,
     handleTitleEdit,
     handleTitleSave,
@@ -1914,16 +1991,31 @@ const TopBar = () => {
   } = useAutomationContext();
 
   const [showSaveSuccess, setShowSaveSuccess] = useState(false);
-
   const { theme, toggleTheme, mounted } = useThemeToggle();
 
   const handleExecuteWorkflow = async () => {
     const onNodeStatusChange = (
       nodeId: string,
-      status: "idle" | "running" | "success" | "error"
+      status: "idle" | "running" | "success" | "error",
+      lastRun?: string,
+      executionResult?: Record<string, unknown>
     ) => {
-      // This will be handled by the context
-      console.log("Node status change:", nodeId, status);
+      // Update the node status in the nodes array
+      setNodes((prevNodes: Node[]) =>
+        prevNodes.map((node: Node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                data: {
+                  ...node.data,
+                  status,
+                  lastRun,
+                  executionResult,
+                },
+              }
+            : node
+        )
+      );
     };
 
     setShowExecutionPanel(true);
@@ -1933,7 +2025,6 @@ const TopBar = () => {
   const handleManualSave = async () => {
     try {
       await saveWorkflow(nodes, edges, workflowName);
-      // Show success feedback
       setShowSaveSuccess(true);
       setTimeout(() => setShowSaveSuccess(false), 2000); // Hide after 2 seconds
     } catch (error) {
@@ -2321,6 +2412,25 @@ const ConfigurationPanel = () => {
           ))}
         </div>
 
+        {/* Branch Outputs Section */}
+        {nodeData.subtype === "branch_condition" && (
+          <div className="mt-6 p-4 bg-[var(--muted)]/50 rounded-lg">
+            <h4 className="text-sm font-medium text-[var(--foreground)] mb-2">
+              Branch Outputs
+            </h4>
+            <div className="space-y-2 text-xs text-[var(--muted-foreground)]">
+              <div>
+                ✅ True path: Connects to nodes that execute when condition is
+                true
+              </div>
+              <div>
+                ❌ False path: Connects to nodes that execute when condition is
+                false
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Available Data Section */}
         <div className="space-y-4 border-t border-[var(--border)] pt-6">
           <h3 className="text-sm font-semibold text-[var(--foreground)]">
@@ -2520,7 +2630,6 @@ const NodeLibraryPanel = () => {
     getActionIntegrations,
     getLogicIntegrations,
     getTemplates,
-    applyTemplate,
   } = useAutomationContext();
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -3126,8 +3235,14 @@ export const useEditor = (currentWorkflowId: string | null = null) => {
               }));
               setIsExecuting(false);
 
-              // Update node statuses based on execution steps
+              // Reset all nodes to idle first, then update completed nodes
               if (status.steps) {
+                // Reset all nodes to idle first
+                nodes.forEach((node) => {
+                  onNodeStatusChange(node.id, "idle");
+                });
+
+                // Update completed nodes
                 status.steps.forEach((step: ExecutionStep) => {
                   onNodeStatusChange(
                     step.node_id,
@@ -3170,6 +3285,23 @@ export const useEditor = (currentWorkflowId: string | null = null) => {
                   }
                 });
               }
+            } else if (status.status === "running") {
+              // Find the currently running step and update only that node
+              const runningStep = status.steps?.find(
+                (s: ExecutionStep) => s.status === "running"
+              );
+              if (runningStep) {
+                // Reset all to idle first, then set current to running
+                nodes.forEach((node) => {
+                  const isCompleted = status.steps?.some(
+                    (s: ExecutionStep) =>
+                      s.node_id === node.id && s.status === "completed"
+                  );
+                  onNodeStatusChange(node.id, isCompleted ? "success" : "idle");
+                });
+
+                onNodeStatusChange(runningStep.node_id, "running");
+              }
             }
           } catch (error) {
             console.error("Polling error:", error);
@@ -3203,206 +3335,6 @@ export const useEditor = (currentWorkflowId: string | null = null) => {
     // Utilities
     parseExpression,
   };
-};
-
------ Content End -----
-
-===== File: hooks/useThemeToggle.tsx =====
-Type: .tsx
------ Content Start -----
-"use client";
-
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-
-export function useThemeToggle() {
-  const { theme, setTheme, resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Prevent hydration mismatch by only rendering after mount
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Update theme-color meta tag when theme changes
-  useEffect(() => {
-    if (!mounted) return;
-
-    const updateThemeColor = () => {
-      const currentTheme = resolvedTheme || theme;
-      const themeColor = currentTheme === "dark" ? "#1e1e1e" : "#f5f5f5";
-
-      // Remove existing theme-color meta tags
-      const existingMeta = document.querySelectorAll(
-        'meta[name="theme-color"]'
-      );
-      existingMeta.forEach((meta) => meta.remove());
-
-      // Add new theme-color meta tag
-      const metaTag = document.createElement("meta");
-      metaTag.name = "theme-color";
-      metaTag.content = themeColor;
-      document.head.appendChild(metaTag);
-    };
-
-    if (theme) {
-      updateThemeColor();
-    }
-  }, [theme, resolvedTheme, mounted]);
-
-  const toggleTheme = () => {
-    setTheme(theme === "dark" ? "light" : "dark");
-  };
-
-  return {
-    theme: mounted ? theme : "dark", // Return default theme during SSR
-    setTheme,
-    resolvedTheme: mounted ? resolvedTheme : "dark", // Return default theme during SSR
-    toggleTheme,
-    mounted,
-  };
-}
-
------ Content End -----
-
-===== File: hooks/useIcons.tsx =====
-Type: .tsx
------ Content Start -----
-import {
-  Home,
-  Check,
-  X,
-  Plus,
-  Trash2,
-  Zap,
-  Circle,
-  Diamond,
-  Link as LinkIcon,
-  Clock,
-  Mail,
-  Send,
-  Globe,
-  MessageSquare,
-  Database,
-  Search,
-  ArrowUpRight,
-  Brain,
-  Save,
-  Play,
-  Hand,
-  LayoutDashboard,
-  Grid3X3,
-  Command,
-  Activity,
-  Bell,
-  Filter,
-  Workflow,
-  Bot,
-  AlertTriangle,
-  CheckCircle,
-  FileText,
-  Settings,
-  Users,
-  Calendar,
-  BarChart3,
-  Shield,
-  Cpu,
-  Network,
-} from "lucide-react";
-
-// ============================================
-// ICON MANAGEMENT
-// ============================================
-
-export const getIcon = (
-  iconName: string,
-  size: string = "w-5 h-5",
-  className: string = "text-[var(--foreground)]"
-) => {
-  const iconClass = `${size} ${className}`;
-
-  switch (iconName) {
-    case "home":
-      return <Home className={iconClass} />;
-    case "check":
-      return <Check className={iconClass} />;
-    case "x":
-      return <X className={iconClass} />;
-    case "plus":
-      return <Plus className={iconClass} />;
-    case "trash":
-      return <Trash2 className={iconClass} />;
-    case "save":
-      return <Save className={iconClass} />;
-    case "play":
-      return <Play className={iconClass} />;
-    case "zap":
-      return <Zap className={iconClass} />;
-    case "circle":
-      return <Circle className={iconClass} />;
-    case "diamond":
-      return <Diamond className={iconClass} />;
-    case "brain":
-      return <Brain className={iconClass} />;
-    case "hand":
-      return <Hand className={iconClass} />;
-    case "link":
-      return <LinkIcon className={iconClass} />;
-    case "clock":
-      return <Clock className={iconClass} />;
-    case "mail":
-      return <Mail className={iconClass} />;
-    case "send":
-      return <Send className={iconClass} />;
-    case "globe":
-      return <Globe className={iconClass} />;
-    case "message-square":
-      return <MessageSquare className={iconClass} />;
-    case "database":
-      return <Database className={iconClass} />;
-    case "search":
-      return <Search className={iconClass} />;
-    case "arrow-up-right":
-      return <ArrowUpRight className={iconClass} />;
-    case "dashboard":
-      return <LayoutDashboard className={iconClass} />;
-    case "grid":
-      return <Grid3X3 className={iconClass} />;
-    case "command":
-      return <Command className={iconClass} />;
-    case "activity":
-      return <Activity className={iconClass} />;
-    case "bell":
-      return <Bell className={iconClass} />;
-    case "filter":
-      return <Filter className={iconClass} />;
-    case "workflow":
-      return <Workflow className={iconClass} />;
-    case "bot":
-      return <Bot className={iconClass} />;
-    case "alert-triangle":
-      return <AlertTriangle className={iconClass} />;
-    case "check-circle":
-      return <CheckCircle className={iconClass} />;
-    case "file-text":
-      return <FileText className={iconClass} />;
-    case "settings":
-      return <Settings className={iconClass} />;
-    case "users":
-      return <Users className={iconClass} />;
-    case "calendar":
-      return <Calendar className={iconClass} />;
-    case "bar-chart-3":
-      return <BarChart3 className={iconClass} />;
-    case "shield":
-      return <Shield className={iconClass} />;
-    case "cpu":
-      return <Cpu className={iconClass} />;
-    case "network":
-      return <Network className={iconClass} />;
-    default:
-      return <Circle className={iconClass} />;
-  }
 };
 
 ----- Content End -----
@@ -3505,6 +3437,7 @@ import {
   updateExecutionToCompleted,
   updateExecutionToFailed,
   createExecutionStep,
+  updateExecutionStepToRunning,
   updateExecutionStepToCompleted,
   updateExecutionStepToFailed,
   getNextPendingExecution,
@@ -3526,9 +3459,12 @@ interface WorkflowEdge {
   id: string;
   source: string;
   target: string;
+  sourceHandle?: string; // Add this to identify which output handle (true/false)
 }
 
 export class ExecutionEngine {
+  private branchDecisions: Map<string, boolean> = new Map(); // Track branch decisions
+
   async executeWorkflow(executionId: string) {
     try {
       // Get execution and workflow data
@@ -3552,13 +3488,22 @@ export class ExecutionEngine {
         executionId,
       };
 
+      // Reset branch decisions for each execution
+      this.branchDecisions.clear();
+
       // Get execution order (topological sort)
       const executionOrder = this.getExecutionOrder(nodes, edges);
 
-      // Execute nodes in order
+      // Execute nodes in order with conditional path support
       for (const nodeId of executionOrder) {
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) {
+          continue;
+        }
+
+        // Check if this node should be skipped based on branch conditions
+        if (this.shouldSkipNode(nodeId, nodes, edges)) {
+          console.log(`Skipping node ${nodeId} due to branch condition`);
           continue;
         }
 
@@ -3577,6 +3522,38 @@ export class ExecutionEngine {
     }
   }
 
+  private shouldSkipNode(
+    nodeId: string,
+    nodes: WorkflowNode[],
+    edges: WorkflowEdge[]
+  ): boolean {
+    // Find all edges leading to this node
+    const incomingEdges = edges.filter((e) => e.target === nodeId);
+
+    for (const edge of incomingEdges) {
+      const sourceNode = nodes.find((n) => n.id === edge.source);
+      if (!sourceNode) continue;
+
+      // Check if source is a branch node
+      if (sourceNode.data.subtype === "branch_condition") {
+        const branchResult = this.branchDecisions.get(sourceNode.id);
+        if (branchResult === undefined) continue; // Branch not yet executed
+
+        // Check if this edge matches the branch result
+        const isTrue =
+          edge.sourceHandle === "true" || edge.id.includes("-true-");
+        const isFalse =
+          edge.sourceHandle === "false" || edge.id.includes("-false-");
+
+        if ((isTrue && !branchResult) || (isFalse && branchResult)) {
+          return true; // Skip this node
+        }
+      }
+    }
+
+    return false;
+  }
+
   private async executeNode(
     node: WorkflowNode,
     context: WorkflowContext,
@@ -3587,9 +3564,24 @@ export class ExecutionEngine {
     // Create execution step record
     const stepId = await createExecutionStep(executionId, nodeId);
 
+    // Set to running BEFORE execution
+    await updateExecutionStepToRunning(stepId);
+
     try {
       // Execute the node
       const result = await this.simulateNodeExecution(node, context);
+
+      // Store branch decisions
+      if (
+        node.data.subtype === "branch_condition" &&
+        "data" in result &&
+        result.data
+      ) {
+        const branchData = result.data as Record<string, unknown>;
+        if (branchData.result !== undefined) {
+          this.branchDecisions.set(node.id, branchData.result as boolean);
+        }
+      }
 
       // Store result in context
       context.nodeOutputs[nodeId] = result;
@@ -4139,13 +4131,30 @@ export async function createExecutionStep(
 ): Promise<string> {
   try {
     const stepResult = await pool.query(
-      "INSERT INTO execution_steps (execution_id, node_id, status, started_at) VALUES ($1, $2, $3, NOW()) RETURNING *",
-      [executionId, nodeId, "running"]
+      "INSERT INTO execution_steps (execution_id, node_id, status) VALUES ($1, $2, $3) RETURNING *",
+      [executionId, nodeId, "pending"]
     );
     return stepResult.rows[0].id;
   } catch (error) {
     console.error("Failed to create execution step:", error);
     throw new Error("Failed to create execution step");
+  }
+}
+
+/**
+ * Update execution step to running
+ */
+export async function updateExecutionStepToRunning(
+  stepId: string
+): Promise<void> {
+  try {
+    await pool.query(
+      "UPDATE execution_steps SET status = $1, started_at = NOW() WHERE id = $2",
+      ["running", stepId]
+    );
+  } catch (error) {
+    console.error("Failed to update execution step to running:", error);
+    throw new Error("Failed to update execution step");
   }
 }
 
@@ -4339,6 +4348,7 @@ export interface WorkflowTemplate {
     id: string;
     source: string;
     target: string;
+    sourceHandle?: string;
   }>;
 }
 
@@ -4781,9 +4791,19 @@ export const workflowTemplates: WorkflowTemplate[] = [
       { id: "e5", source: "var-2", target: "ai-1" },
       { id: "e6", source: "ai-1", target: "branch-1" },
 
-      // Branch paths (Note: In a real implementation, these would be conditional)
-      { id: "e7", source: "branch-1", target: "slack-high" },
-      { id: "e8", source: "branch-1", target: "email-standard" },
+      // Branch paths with conditional handles
+      {
+        id: "e7",
+        source: "branch-1",
+        sourceHandle: "true",
+        target: "slack-high",
+      },
+      {
+        id: "e8",
+        source: "branch-1",
+        sourceHandle: "false",
+        target: "email-standard",
+      },
 
       // Convergence to delay (both paths lead here)
       { id: "e9", source: "slack-high", target: "delay-1" },
@@ -5528,17 +5548,19 @@ export const branchCondition: Integration = createIntegration({
     async execute(config, ctx: WorkflowContext) {
       // The condition should already be interpolated by the registry
       const condition = config.condition as string;
-      
+
       // Parse the condition to replace variables
       const interpolatedCondition = parseExpression(condition, ctx, true);
-      
+
       let conditionResult = false;
-      try { 
-        conditionResult = Function(`"use strict"; return (${interpolatedCondition});`)(); 
-      } catch (error) { 
-        console.warn('Branch condition evaluation failed:', error);
+      try {
+        conditionResult = Function(
+          `"use strict"; return (${interpolatedCondition});`
+        )();
+      } catch (error) {
+        console.warn("Branch condition evaluation failed:", error);
       }
-      
+
       const timestamp = new Date().toISOString();
 
       return {

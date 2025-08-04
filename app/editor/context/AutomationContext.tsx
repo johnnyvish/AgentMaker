@@ -64,6 +64,7 @@ interface AutomationContextType {
   isEditingTitle: boolean;
   sidebarOpen: boolean;
   showExecutionPanel: boolean;
+  showChatPanel: boolean;
   copiedField: string | null;
   currentWorkflowId: string | null;
   setNodes: (updater: Node[] | ((prev: Node[]) => Node[])) => void;
@@ -73,6 +74,7 @@ interface AutomationContextType {
   setIsEditingTitle: (editing: boolean) => void;
   setSidebarOpen: (open: boolean) => void;
   setShowExecutionPanel: (show: boolean) => void;
+  setShowChatPanel: (show: boolean) => void;
   setCopiedField: (field: string | null) => void;
   setCurrentWorkflowId: (id: string | null) => void;
 
@@ -163,6 +165,7 @@ export const AutomationProvider = ({ children }: AutomationProviderProps) => {
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showExecutionPanel, setShowExecutionPanel] = useState(false);
+  const [showChatPanel, setShowChatPanel] = useState(false);
 
   // Copy state
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -441,6 +444,8 @@ export const AutomationProvider = ({ children }: AutomationProviderProps) => {
     setSidebarOpen,
     showExecutionPanel,
     setShowExecutionPanel,
+    showChatPanel,
+    setShowChatPanel,
     copiedField,
     setCopiedField,
     currentWorkflowId,

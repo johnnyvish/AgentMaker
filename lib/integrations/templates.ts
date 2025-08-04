@@ -22,6 +22,7 @@ export interface WorkflowTemplate {
     id: string;
     source: string;
     target: string;
+    sourceHandle?: string;
   }>;
 }
 
@@ -464,9 +465,19 @@ export const workflowTemplates: WorkflowTemplate[] = [
       { id: "e5", source: "var-2", target: "ai-1" },
       { id: "e6", source: "ai-1", target: "branch-1" },
 
-      // Branch paths (Note: In a real implementation, these would be conditional)
-      { id: "e7", source: "branch-1", target: "slack-high" },
-      { id: "e8", source: "branch-1", target: "email-standard" },
+      // Branch paths with conditional handles
+      {
+        id: "e7",
+        source: "branch-1",
+        sourceHandle: "true",
+        target: "slack-high",
+      },
+      {
+        id: "e8",
+        source: "branch-1",
+        sourceHandle: "false",
+        target: "email-standard",
+      },
 
       // Convergence to delay (both paths lead here)
       { id: "e9", source: "slack-high", target: "delay-1" },

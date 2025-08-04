@@ -4,6 +4,7 @@ import {
   updateExecutionToCompleted,
   updateExecutionToFailed,
   createExecutionStep,
+  updateExecutionStepToRunning,
   updateExecutionStepToCompleted,
   updateExecutionStepToFailed,
   getNextPendingExecution,
@@ -25,9 +26,12 @@ interface WorkflowEdge {
   id: string;
   source: string;
   target: string;
+  sourceHandle?: string; // Add this to identify which output handle (true/false)
 }
 
 export class ExecutionEngine {
+  private branchDecisions: Map<string, boolean> = new Map(); // Track branch decisions
+
   async executeWorkflow(executionId: string) {
     try {
       // Get execution and workflow data
@@ -51,13 +55,22 @@ export class ExecutionEngine {
         executionId,
       };
 
+      // Reset branch decisions for each execution
+      this.branchDecisions.clear();
+
       // Get execution order (topological sort)
       const executionOrder = this.getExecutionOrder(nodes, edges);
 
-      // Execute nodes in order
+      // Execute nodes in order with conditional path support
       for (const nodeId of executionOrder) {
         const node = nodes.find((n) => n.id === nodeId);
         if (!node) {
+          continue;
+        }
+
+        // Check if this node should be skipped based on branch conditions
+        if (this.shouldSkipNode(nodeId, nodes, edges)) {
+          console.log(`Skipping node ${nodeId} due to branch condition`);
           continue;
         }
 
@@ -76,6 +89,38 @@ export class ExecutionEngine {
     }
   }
 
+  private shouldSkipNode(
+    nodeId: string,
+    nodes: WorkflowNode[],
+    edges: WorkflowEdge[]
+  ): boolean {
+    // Find all edges leading to this node
+    const incomingEdges = edges.filter((e) => e.target === nodeId);
+
+    for (const edge of incomingEdges) {
+      const sourceNode = nodes.find((n) => n.id === edge.source);
+      if (!sourceNode) continue;
+
+      // Check if source is a branch node
+      if (sourceNode.data.subtype === "branch_condition") {
+        const branchResult = this.branchDecisions.get(sourceNode.id);
+        if (branchResult === undefined) continue; // Branch not yet executed
+
+        // Check if this edge matches the branch result
+        const isTrue =
+          edge.sourceHandle === "true" || edge.id.includes("-true-");
+        const isFalse =
+          edge.sourceHandle === "false" || edge.id.includes("-false-");
+
+        if ((isTrue && !branchResult) || (isFalse && branchResult)) {
+          return true; // Skip this node
+        }
+      }
+    }
+
+    return false;
+  }
+
   private async executeNode(
     node: WorkflowNode,
     context: WorkflowContext,
@@ -86,9 +131,24 @@ export class ExecutionEngine {
     // Create execution step record
     const stepId = await createExecutionStep(executionId, nodeId);
 
+    // Set to running BEFORE execution
+    await updateExecutionStepToRunning(stepId);
+
     try {
       // Execute the node
       const result = await this.simulateNodeExecution(node, context);
+
+      // Store branch decisions
+      if (
+        node.data.subtype === "branch_condition" &&
+        "data" in result &&
+        result.data
+      ) {
+        const branchData = result.data as Record<string, unknown>;
+        if (branchData.result !== undefined) {
+          this.branchDecisions.set(node.id, branchData.result as boolean);
+        }
+      }
 
       // Store result in context
       context.nodeOutputs[nodeId] = result;

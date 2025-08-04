@@ -24,7 +24,7 @@ def combine_files(input_dir, output_file='codebase.txt'):
     Each file's content is labeled with its file type and relative path.
     """
     # Define the folders to target
-    target_folders = ["app", "hooks", "lib", "components"]
+    target_folders = ["app", "lib", "components"]
     # Define the individual files to target
     target_files = []  # Add more file names as needed
 

@@ -23,6 +23,7 @@
   --input: #e2e8f0;
   --ring: #0f172a;
   --radius: 0.5rem;
+  --top-bar-height: 72px;
   --scrollbar-thumb: #d1d5db;
   --scrollbar-thumb-hover: #9ca3af;
   --scrollbar-thumb-active: #6b7280;
@@ -49,6 +50,7 @@
   --border: #262626;
   --input: #262626;
   --ring: #f8fafc;
+  --top-bar-height: 72px;
   --scrollbar-thumb: #404040;
   --scrollbar-thumb-hover: #525252;
   --scrollbar-thumb-active: #737373;

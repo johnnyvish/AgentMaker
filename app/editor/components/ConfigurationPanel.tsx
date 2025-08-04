@@ -206,6 +206,25 @@ const ConfigurationPanel = () => {
           ))}
         </div>
 
+        {/* Branch Outputs Section */}
+        {nodeData.subtype === "branch_condition" && (
+          <div className="mt-6 p-4 bg-[var(--muted)]/50 rounded-lg">
+            <h4 className="text-sm font-medium text-[var(--foreground)] mb-2">
+              Branch Outputs
+            </h4>
+            <div className="space-y-2 text-xs text-[var(--muted-foreground)]">
+              <div>
+                ✅ True path: Connects to nodes that execute when condition is
+                true
+              </div>
+              <div>
+                ❌ False path: Connects to nodes that execute when condition is
+                false
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Available Data Section */}
         <div className="space-y-4 border-t border-[var(--border)] pt-6">
           <h3 className="text-sm font-semibold text-[var(--foreground)]">

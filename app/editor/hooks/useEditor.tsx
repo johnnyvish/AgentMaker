@@ -326,8 +326,14 @@ export const useEditor = (currentWorkflowId: string | null = null) => {
               }));
               setIsExecuting(false);
 
-              // Update node statuses based on execution steps
+              // Reset all nodes to idle first, then update completed nodes
               if (status.steps) {
+                // Reset all nodes to idle first
+                nodes.forEach((node) => {
+                  onNodeStatusChange(node.id, "idle");
+                });
+
+                // Update completed nodes
                 status.steps.forEach((step: ExecutionStep) => {
                   onNodeStatusChange(
                     step.node_id,
@@ -369,6 +375,23 @@ export const useEditor = (currentWorkflowId: string | null = null) => {
                     }));
                   }
                 });
+              }
+            } else if (status.status === "running") {
+              // Find the currently running step and update only that node
+              const runningStep = status.steps?.find(
+                (s: ExecutionStep) => s.status === "running"
+              );
+              if (runningStep) {
+                // Reset all to idle first, then set current to running
+                nodes.forEach((node) => {
+                  const isCompleted = status.steps?.some(
+                    (s: ExecutionStep) =>
+                      s.node_id === node.id && s.status === "completed"
+                  );
+                  onNodeStatusChange(node.id, isCompleted ? "success" : "idle");
+                });
+
+                onNodeStatusChange(runningStep.node_id, "running");
               }
             }
           } catch (error) {
