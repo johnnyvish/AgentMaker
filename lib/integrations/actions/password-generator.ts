@@ -1,6 +1,95 @@
 import { createIntegration } from "../utils";
 import type { Integration } from "../types";
 
+// Helper functions
+function getDefaultLength(type: string): number {
+  switch (type) {
+    case "password":
+      return 16;
+    case "api_key":
+      return 32;
+    case "token":
+      return 64;
+    case "pin":
+      return 6;
+    default:
+      return 16;
+  }
+}
+
+function generateCharset(options: {
+  includeUppercase: boolean;
+  includeLowercase: boolean;
+  includeNumbers: boolean;
+  includeSymbols: boolean;
+  excludeSimilar: boolean;
+  excludeAmbiguous: boolean;
+  customCharset: string;
+  type: string;
+}): string {
+  if (options.customCharset) {
+    return options.customCharset;
+  }
+
+  let charset = "";
+
+  if (options.type === "pin") {
+    charset = "0123456789";
+  } else {
+    if (options.includeUppercase) {
+      charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    }
+    if (options.includeLowercase) {
+      charset += "abcdefghijklmnopqrstuvwxyz";
+    }
+    if (options.includeNumbers) {
+      charset += "0123456789";
+    }
+    if (options.includeSymbols) {
+      charset += "!@#$%^&*()_+-=[]{}|;:,.<>?";
+    }
+  }
+
+  if (options.excludeSimilar) {
+    charset = charset.replace(/[il1Lo0O]/g, "");
+  }
+
+  if (options.excludeAmbiguous) {
+    charset = charset.replace(/[{}[\]()/\\'"`~,;:.<>]/g, "");
+  }
+
+  return charset || "abcdefghijklmnopqrstuvwxyz0123456789";
+}
+
+function generateRandomString(charset: string, length: number): string {
+  let result = "";
+  for (let i = 0; i < length; i++) {
+    result += charset.charAt(Math.floor(Math.random() * charset.length));
+  }
+  return result;
+}
+
+function generateUUID(): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
+function calculateStrength(charset: string, length: number): string {
+  const entropy = calculateEntropy(charset, length);
+  if (entropy >= 128) return "Very Strong";
+  if (entropy >= 64) return "Strong";
+  if (entropy >= 32) return "Medium";
+  if (entropy >= 16) return "Weak";
+  return "Very Weak";
+}
+
+function calculateEntropy(charset: string, length: number): number {
+  return Math.log2(Math.pow(charset.length, length));
+}
+
 export const passwordGenerator: Integration = createIntegration({
   id: "password_generator",
   name: "Password Generator",
@@ -116,7 +205,7 @@ export const passwordGenerator: Integration = createIntegration({
       const timestamp = new Date().toISOString();
 
       const type = config.type as string;
-      const length = (config.length as number) || this.getDefaultLength(type);
+      const length = (config.length as number) || getDefaultLength(type);
       const includeUppercase = (config.include_uppercase as boolean) !== false;
       const includeLowercase = (config.include_lowercase as boolean) !== false;
       const includeNumbers = (config.include_numbers as boolean) !== false;
@@ -130,7 +219,7 @@ export const passwordGenerator: Integration = createIntegration({
       const count = (config.count as number) || 1;
 
       const generatedPasswords = [];
-      const charset = this.generateCharset({
+      const charset = generateCharset({
         includeUppercase,
         includeLowercase,
         includeNumbers,
@@ -142,7 +231,7 @@ export const passwordGenerator: Integration = createIntegration({
       });
 
       for (let i = 0; i < count; i++) {
-        let generated = this.generateRandomString(charset, length);
+        let generated = generateRandomString(charset, length);
 
         // Apply format
         switch (format) {
@@ -155,7 +244,7 @@ export const passwordGenerator: Integration = createIntegration({
               .join("");
             break;
           case "uuid":
-            generated = this.generateUUID();
+            generated = generateUUID();
             break;
         }
 
@@ -179,8 +268,8 @@ export const passwordGenerator: Integration = createIntegration({
           passwords: generatedPasswords,
           singlePassword: generatedPasswords[0],
           charset: charset.length,
-          strength: this.calculateStrength(charset, length),
-          entropy: this.calculateEntropy(charset, length),
+          strength: calculateStrength(charset, length),
+          entropy: calculateEntropy(charset, length),
           options: {
             includeUppercase,
             includeLowercase,
@@ -196,97 +285,6 @@ export const passwordGenerator: Integration = createIntegration({
         },
         metadata: { nodeType: "action", subtype: "password_generator" },
       };
-    },
-
-    getDefaultLength(type: string): number {
-      switch (type) {
-        case "password":
-          return 16;
-        case "api_key":
-          return 32;
-        case "token":
-          return 64;
-        case "pin":
-          return 6;
-        default:
-          return 16;
-      }
-    },
-
-    generateCharset(options: {
-      includeUppercase: boolean;
-      includeLowercase: boolean;
-      includeNumbers: boolean;
-      includeSymbols: boolean;
-      excludeSimilar: boolean;
-      excludeAmbiguous: boolean;
-      customCharset: string;
-      type: string;
-    }): string {
-      if (options.customCharset) {
-        return options.customCharset;
-      }
-
-      let charset = "";
-
-      if (options.type === "pin") {
-        charset = "0123456789";
-      } else {
-        if (options.includeUppercase) {
-          charset += "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-        }
-        if (options.includeLowercase) {
-          charset += "abcdefghijklmnopqrstuvwxyz";
-        }
-        if (options.includeNumbers) {
-          charset += "0123456789";
-        }
-        if (options.includeSymbols) {
-          charset += "!@#$%^&*()_+-=[]{}|;:,.<>?";
-        }
-      }
-
-      if (options.excludeSimilar) {
-        charset = charset.replace(/[il1Lo0O]/g, "");
-      }
-
-      if (options.excludeAmbiguous) {
-        charset = charset.replace(/[{}[\]()/\\'"`~,;:.<>]/g, "");
-      }
-
-      return charset || "abcdefghijklmnopqrstuvwxyz0123456789";
-    },
-
-    generateRandomString(charset: string, length: number): string {
-      let result = "";
-      for (let i = 0; i < length; i++) {
-        result += charset.charAt(Math.floor(Math.random() * charset.length));
-      }
-      return result;
-    },
-
-    generateUUID(): string {
-      return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(
-        /[xy]/g,
-        function (c) {
-          const r = (Math.random() * 16) | 0;
-          const v = c === "x" ? r : (r & 0x3) | 0x8;
-          return v.toString(16);
-        }
-      );
-    },
-
-    calculateStrength(charset: string, length: number): string {
-      const entropy = this.calculateEntropy(charset, length);
-      if (entropy >= 128) return "Very Strong";
-      if (entropy >= 64) return "Strong";
-      if (entropy >= 32) return "Medium";
-      if (entropy >= 16) return "Weak";
-      return "Very Weak";
-    },
-
-    calculateEntropy(charset: string, length: number): number {
-      return Math.log2(Math.pow(charset.length, length));
     },
 
     validate(config) {
