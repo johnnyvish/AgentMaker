@@ -21,6 +21,53 @@ import { filterCondition } from "./logic/filter-condition";
 import { branchCondition } from "./logic/branch-condition";
 import { transformData } from "./logic/transform-data";
 
+// Communication & Messaging
+import { discordSendMessage } from "./actions/discord-send-message";
+import { teamsSendMessage } from "./actions/teams-send-message";
+import { telegramSendMessage } from "./actions/telegram-send-message";
+
+// Databases & Storage
+import { postgresInsert } from "./actions/postgres-insert";
+import { sheetsAppendRow } from "./actions/sheets-append-row";
+import { airtableCreateRecord } from "./actions/airtable-create-record";
+
+// Payments & Finance
+import { stripeCreatePayment } from "./actions/stripe-create-payment";
+import { paypalSendPayment } from "./actions/paypal-send-payment";
+
+// CRM & Sales
+import { hubspotCreateContact } from "./actions/hubspot-create-contact";
+import { salesforceCreateLead } from "./actions/salesforce-create-lead";
+
+// Project Management
+import { asanaCreateTask } from "./actions/asana-create-task";
+import { trelloCreateCard } from "./actions/trello-create-card";
+
+// Cloud Storage
+import { s3UploadFile } from "./actions/s3-upload-file";
+import { driveUploadFile } from "./actions/drive-upload-file";
+
+// Email Marketing
+import { mailchimpAddSubscriber } from "./actions/mailchimp-add-subscriber";
+import { sendgridSendEmail } from "./actions/sendgrid-send-email";
+
+// Social Media
+import { twitterPostTweet } from "./actions/twitter-post-tweet";
+import { linkedinCreatePost } from "./actions/linkedin-create-post";
+
+// Development Tools
+import { githubCreateIssue } from "./actions/github-create-issue";
+import { jiraCreateIssue } from "./actions/jira-create-issue";
+
+// Business Tools
+import { zoomCreateMeeting } from "./actions/zoom-create-meeting";
+import { notionCreatePage } from "./actions/notion-create-page";
+
+// Additional Integrations
+import { smsSend } from "./actions/sms-send";
+import { redisSet } from "./actions/redis-set";
+import { cloudinaryUploadImage } from "./actions/cloudinary-upload-image";
+
 // ============================================
 // INTEGRATION REGISTRY CLASS
 // ============================================
@@ -43,6 +90,53 @@ class IntegrationRegistry {
       apiRequest,
       delay,
       aiIntegration,
+
+      // Communication & Messaging
+      discordSendMessage,
+      teamsSendMessage,
+      telegramSendMessage,
+
+      // Databases & Storage
+      postgresInsert,
+      sheetsAppendRow,
+      airtableCreateRecord,
+
+      // Payments & Finance
+      stripeCreatePayment,
+      paypalSendPayment,
+
+      // CRM & Sales
+      hubspotCreateContact,
+      salesforceCreateLead,
+
+      // Project Management
+      asanaCreateTask,
+      trelloCreateCard,
+
+      // Cloud Storage
+      s3UploadFile,
+      driveUploadFile,
+
+      // Email Marketing
+      mailchimpAddSubscriber,
+      sendgridSendEmail,
+
+      // Social Media
+      twitterPostTweet,
+      linkedinCreatePost,
+
+      // Development Tools
+      githubCreateIssue,
+      jiraCreateIssue,
+
+      // Business Tools
+      zoomCreateMeeting,
+      notionCreatePage,
+
+      // Additional Integrations
+      smsSend,
+      redisSet,
+      cloudinaryUploadImage,
 
       // Logic
       filterCondition,

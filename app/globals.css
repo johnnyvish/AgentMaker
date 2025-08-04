@@ -1,5 +1,65 @@
 @import "tailwindcss";
 
+/* Font utilities */
+.font-poppins {
+  font-family: var(--font-poppins);
+}
+
+/* Set JetBrains Mono as default font for the entire website */
+body {
+  font-family: var(--font-jetbrains-mono);
+}
+
+/* Alternative fonts for easy switching */
+.font-inter {
+  font-family: var(--font-inter);
+}
+
+.font-geist {
+  font-family: var(--font-geist-sans);
+}
+
+.font-roboto {
+  font-family: var(--font-roboto);
+}
+
+.font-open-sans {
+  font-family: var(--font-open-sans);
+}
+
+.font-montserrat {
+  font-family: var(--font-montserrat);
+}
+
+/* Unique and distinctive fonts */
+.font-outfit {
+  font-family: var(--font-outfit);
+}
+
+.font-albert-sans {
+  font-family: var(--font-albert-sans);
+}
+
+.font-plus-jakarta-sans {
+  font-family: var(--font-plus-jakarta-sans);
+}
+
+.font-dm-sans {
+  font-family: var(--font-dm-sans);
+}
+
+.font-manrope {
+  font-family: var(--font-manrope);
+}
+
+.font-space-grotesk {
+  font-family: var(--font-space-grotesk);
+}
+
+.font-jetbrains-mono {
+  font-family: var(--font-jetbrains-mono);
+}
+
 /* CSS Variables for Light and Dark Themes */
 :root {
   /* Light theme variables */
@@ -175,4 +235,27 @@ select:disabled {
 
 .dark select:disabled {
   background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23525252' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+}
+
+/* Prevent overscroll bounce effects */
+html,
+body {
+  overscroll-behavior: none;
+  /* Alternative property for better browser support */
+  overscroll-behavior-y: none;
+}
+
+/* Hide scrollbars while maintaining scroll functionality */
+html,
+body {
+  /* Firefox */
+  scrollbar-width: none;
+  /* IE and Edge */
+  -ms-overflow-style: none;
+}
+
+/* Webkit browsers (Chrome, Safari, newer Edge) */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }

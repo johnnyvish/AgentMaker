@@ -6,7 +6,7 @@ export const slackSendMessage: Integration = createIntegration({
   name: "Send Slack Message",
   category: "action",
   description: "Send a message to a Slack channel",
-  icon: "message-square",
+  icon: "slack",
   version: "1.0.0",
 
   auth: {

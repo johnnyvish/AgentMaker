@@ -164,6 +164,30 @@ export async function updateAutomation(
 }
 
 /**
+ * Update automation status
+ */
+export async function updateAutomationStatus(
+  id: string,
+  status: string
+): Promise<Automation> {
+  try {
+    const result = await pool.query(
+      "UPDATE automations SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *",
+      [status, id]
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error("Automation not found");
+    }
+
+    return result.rows[0];
+  } catch (error) {
+    console.error("Failed to update automation status:", error);
+    throw error;
+  }
+}
+
+/**
  * Delete an automation
  */
 export async function deleteAutomation(id: string): Promise<void> {

@@ -39,7 +39,61 @@ import {
   Shield,
   Cpu,
   Network,
+  // Additional icons for integrations
+  MessageCircle,
+  User,
+  UserPlus,
+  CreditCard,
+  DollarSign,
+  Image as LucideImage,
+  Video,
+  CheckSquare,
+  Cloud,
+  HardDrive,
+  AlertCircle,
+  Grid,
 } from "lucide-react";
+
+// Brand icons from react-icons
+import {
+  FaSlack,
+  FaDiscord,
+  FaTwitter,
+  FaLinkedin,
+  FaGithub,
+  FaTelegram,
+  FaWhatsapp,
+  FaPaypal,
+  FaStripe,
+  FaAws,
+  FaGoogle,
+  FaDropbox,
+  FaSpotify,
+  FaYoutube,
+  FaTwitch,
+  FaSteam,
+  FaShopify,
+  FaWordpress,
+  FaJira,
+  FaTrello,
+  FaHubspot,
+  FaSalesforce,
+  FaMailchimp,
+  FaMicrosoft,
+} from "react-icons/fa";
+
+// Additional brand icons from other react-icons packages
+import {
+  SiAsana,
+  SiNotion,
+  SiZoom,
+  SiSendgrid,
+  SiCloudinary,
+  SiRedis,
+  SiPostgresql,
+  SiMongodb,
+  SiAirtable,
+} from "react-icons/si";
 
 // ============================================
 // ICON MANAGEMENT
@@ -51,6 +105,10 @@ export const getIcon = (
   className: string = "text-[var(--foreground)]"
 ) => {
   const iconClass = `${size} ${className}`;
+  const iconProps = {
+    className: iconClass,
+    "aria-label": `${iconName} icon`,
+  };
 
   switch (iconName) {
     case "home":
@@ -133,6 +191,98 @@ export const getIcon = (
       return <Cpu className={iconClass} />;
     case "network":
       return <Network className={iconClass} />;
+    case "message-circle":
+      return <MessageCircle className={iconClass} />;
+    case "user":
+      return <User className={iconClass} />;
+    case "user-plus":
+      return <UserPlus className={iconClass} />;
+    case "credit-card":
+      return <CreditCard className={iconClass} />;
+    case "dollar-sign":
+      return <DollarSign className={iconClass} />;
+    case "image":
+      return <LucideImage {...iconProps} />;
+    case "video":
+      return <Video className={iconClass} />;
+    case "check-square":
+      return <CheckSquare className={iconClass} />;
+    case "cloud":
+      return <Cloud className={iconClass} />;
+    case "hard-drive":
+      return <HardDrive className={iconClass} />;
+    case "alert-circle":
+      return <AlertCircle className={iconClass} />;
+    case "grid":
+      return <Grid className={iconClass} />;
+
+    // Brand icons
+    case "slack":
+      return <FaSlack className={iconClass} />;
+    case "discord":
+      return <FaDiscord className={iconClass} />;
+    case "twitter":
+      return <FaTwitter className={iconClass} />;
+    case "linkedin":
+      return <FaLinkedin className={iconClass} />;
+    case "github":
+      return <FaGithub className={iconClass} />;
+    case "telegram":
+      return <FaTelegram className={iconClass} />;
+    case "whatsapp":
+      return <FaWhatsapp className={iconClass} />;
+    case "paypal":
+      return <FaPaypal className={iconClass} />;
+    case "stripe":
+      return <FaStripe className={iconClass} />;
+    case "aws":
+      return <FaAws className={iconClass} />;
+    case "google":
+      return <FaGoogle className={iconClass} />;
+    case "dropbox":
+      return <FaDropbox className={iconClass} />;
+    case "spotify":
+      return <FaSpotify className={iconClass} />;
+    case "youtube":
+      return <FaYoutube className={iconClass} />;
+    case "twitch":
+      return <FaTwitch className={iconClass} />;
+    case "steam":
+      return <FaSteam className={iconClass} />;
+    case "shopify":
+      return <FaShopify className={iconClass} />;
+    case "wordpress":
+      return <FaWordpress className={iconClass} />;
+    case "jira":
+      return <FaJira className={iconClass} />;
+    case "trello":
+      return <FaTrello className={iconClass} />;
+    case "asana":
+      return <SiAsana className={iconClass} />;
+    case "notion":
+      return <SiNotion className={iconClass} />;
+    case "zoom":
+      return <SiZoom className={iconClass} />;
+    case "hubspot":
+      return <FaHubspot className={iconClass} />;
+    case "salesforce":
+      return <FaSalesforce className={iconClass} />;
+    case "mailchimp":
+      return <FaMailchimp className={iconClass} />;
+    case "sendgrid":
+      return <SiSendgrid className={iconClass} />;
+    case "cloudinary":
+      return <SiCloudinary className={iconClass} />;
+    case "redis":
+      return <SiRedis className={iconClass} />;
+    case "postgresql":
+      return <SiPostgresql className={iconClass} />;
+    case "mongodb":
+      return <SiMongodb className={iconClass} />;
+    case "airtable":
+      return <SiAirtable className={iconClass} />;
+    case "microsoft":
+      return <FaMicrosoft className={iconClass} />;
     default:
       return <Circle className={iconClass} />;
   }

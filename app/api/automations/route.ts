@@ -3,6 +3,7 @@ import {
   getAllAutomations,
   createAutomation,
   updateAutomation,
+  updateAutomationStatus,
   deleteAutomation,
 } from "@/lib/db";
 
@@ -50,6 +51,43 @@ export async function PUT(request: NextRequest) {
     }
     return NextResponse.json(
       { error: "Failed to update automation" },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const { status } = await request.json();
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Automation ID is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!status || !["active", "inactive"].includes(status)) {
+      return NextResponse.json(
+        { error: "Valid status is required" },
+        { status: 400 }
+      );
+    }
+
+    const automation = await updateAutomationStatus(id, status);
+    return NextResponse.json(automation);
+  } catch (error) {
+    console.error("Database error:", error);
+    if (error instanceof Error && error.message === "Automation not found") {
+      return NextResponse.json(
+        { error: "Automation not found" },
+        { status: 404 }
+      );
+    }
+    return NextResponse.json(
+      { error: "Failed to update automation status" },
       { status: 500 }
     );
   }
