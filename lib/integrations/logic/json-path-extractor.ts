@@ -1,6 +1,67 @@
 import { createIntegration } from "../utils";
 import type { Integration } from "../types";
 
+// Helper functions
+function mockJsonPathExtract(
+  data: unknown,
+  path: string,
+  options: {
+    extractionMode: string;
+    maxResults: number;
+    caseSensitive: boolean;
+  }
+): unknown {
+  // Simple mock implementation for common JSONPath patterns
+  const pathLower = path.toLowerCase();
+
+  if (pathLower.includes("$.") && pathLower.includes("[*]")) {
+    // Array extraction pattern
+    const parts = path.split("[*]");
+    if (parts.length >= 2) {
+      const field = parts[1].replace(/[^a-zA-Z0-9_]/g, "");
+      if (Array.isArray(data)) {
+        return data
+          .slice(0, options.maxResults)
+          .map((item) =>
+            typeof item === "object" && item
+              ? (item as Record<string, unknown>)[field]
+              : null
+          )
+          .filter((v) => v !== null);
+      }
+    }
+  }
+
+  if (pathLower.includes("$.") && pathLower.includes(".")) {
+    // Nested object extraction
+    const parts = path.split(".").slice(1); // Remove "$"
+    let current = data;
+    for (const part of parts) {
+      if (typeof current === "object" && current && part in current) {
+        current = (current as Record<string, unknown>)[part];
+      } else {
+        return null;
+      }
+    }
+    return current;
+  }
+
+  // Default: return the data itself
+  return data;
+}
+
+function flattenArray(arr: unknown[]): unknown[] {
+  const result: unknown[] = [];
+  for (const item of arr) {
+    if (Array.isArray(item)) {
+      result.push(...flattenArray(item));
+    } else {
+      result.push(item);
+    }
+  }
+  return result;
+}
+
 export const jsonPathExtractor: Integration = createIntegration({
   id: "json_path_extractor",
   name: "JSON Path Extractor",
@@ -112,7 +173,7 @@ export const jsonPathExtractor: Integration = createIntegration({
       }
 
       // Mock JSONPath extraction
-      const extractedValues = this.mockJsonPathExtract(parsedData, jsonPath, {
+      const extractedValues = mockJsonPathExtract(parsedData, jsonPath, {
         extractionMode,
         maxResults,
         caseSensitive,
@@ -145,7 +206,7 @@ export const jsonPathExtractor: Integration = createIntegration({
 
       // Flatten results if requested
       if (flattenResults && Array.isArray(formattedResult)) {
-        formattedResult = this.flattenArray(formattedResult);
+        formattedResult = flattenArray(formattedResult);
       }
 
       const extractorId = `jsonpath_${Date.now()}_${Math.random()
@@ -176,68 +237,6 @@ export const jsonPathExtractor: Integration = createIntegration({
         },
         metadata: { nodeType: "logic", subtype: "json_path_extractor" },
       };
-    },
-
-    mockJsonPathExtract(
-      data: unknown,
-      path: string,
-      options: {
-        extractionMode: string;
-        maxResults: number;
-        caseSensitive: boolean;
-      }
-    ): unknown {
-      // Simple mock implementation for common JSONPath patterns
-      const pathLower = path.toLowerCase();
-
-      if (pathLower.includes("$.") && pathLower.includes("[*]")) {
-        // Array extraction pattern
-        const parts = path.split("[*]");
-        if (parts.length >= 2) {
-          const field = parts[1].replace(/[^a-zA-Z0-9_]/g, "");
-          if (Array.isArray(data)) {
-            return data
-              .slice(0, options.maxResults)
-              .map((item) =>
-                typeof item === "object" && item
-                  ? (item as Record<string, unknown>)[field]
-                  : null
-              )
-              .filter((v) => v !== null);
-          }
-        }
-      }
-
-      if (pathLower.includes("$.") && !pathLower.includes("[*]")) {
-        // Single field extraction
-        const field = path.replace("$.", "").replace(/[^a-zA-Z0-9_]/g, "");
-        if (typeof data === "object" && data) {
-          return (data as Record<string, unknown>)[field];
-        }
-      }
-
-      if (pathLower === "$") {
-        // Root object
-        return data;
-      }
-
-      // Default mock response
-      return ["mock_value_1", "mock_value_2", "mock_value_3"].slice(
-        0,
-        options.maxResults
-      );
-    },
-
-    flattenArray(arr: unknown[]): unknown[] {
-      const result: unknown[] = [];
-      for (const item of arr) {
-        if (Array.isArray(item)) {
-          result.push(...this.flattenArray(item));
-        } else {
-          result.push(item);
-        }
-      }
-      return result;
     },
 
     validate(config) {

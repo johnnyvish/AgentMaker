@@ -1,6 +1,71 @@
 import { createIntegration } from "../utils";
 import type { Integration } from "../types";
 
+// Helper functions
+function getVariablePatterns(syntax: string, custom: string): string[] {
+  switch (syntax) {
+    case "handlebars":
+    case "mustache":
+      return ["{{variable}}"];
+    case "dollar":
+      return ["{{$variable}}"];
+    case "percent":
+      return ["%variable%"];
+    case "custom":
+      if (custom) {
+        const [start, end] = custom.split(",");
+        return [`${start}variable${end}`];
+      }
+      return ["{{variable}}"];
+    default:
+      return ["{{variable}}"];
+  }
+}
+
+function formatAsHtml(template: string): string {
+  return template
+    .replace(/\n/g, "<br>")
+    .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+    .replace(/\*(.*?)\*/g, "<em>$1</em>");
+}
+
+function formatAsEmail(template: string): string {
+  return `
+    <html>
+      <body>
+        ${template}
+      </body>
+    </html>
+  `;
+}
+
+function formatAsMarkdown(template: string): string {
+  return template
+    .replace(/\*\*(.*?)\*\*/g, "**$1**")
+    .replace(/\*(.*?)\*/g, "*$1*")
+    .replace(/\n/g, "\n\n");
+}
+
+function formatAsJson(template: string, variables: Record<string, unknown>): string {
+  return JSON.stringify({
+    template,
+    variables,
+    processed: template,
+  });
+}
+
+function countSubstitutions(template: string, variables: Record<string, unknown>): number {
+  let count = 0;
+  for (const key of Object.keys(variables)) {
+    const regex = new RegExp(`{{${key}}}`, 'g');
+    const matches = template.match(regex);
+    if (matches) {
+      count += matches.length;
+    }
+  }
+  return count;
+}
+
 export const templateEngine: Integration = createIntegration({
   id: "template_engine",
   name: "Template Engine",
@@ -147,7 +212,7 @@ export const templateEngine: Integration = createIntegration({
       
       // Simple variable substitution
       for (const [key, value] of Object.entries(allVariables)) {
-        const patterns = this.getVariablePatterns(variableSyntax, customSyntax);
+        const patterns = getVariablePatterns(variableSyntax, customSyntax);
         for (const pattern of patterns) {
           const regex = new RegExp(pattern.replace('{{variable}}', `{{${key}}}`), 'g');
           processedTemplate = processedTemplate.replace(regex, String(value));
@@ -157,16 +222,16 @@ export const templateEngine: Integration = createIntegration({
       // Apply template type formatting
       switch (templateType) {
         case "html":
-          processedTemplate = this.formatAsHtml(processedTemplate);
+          processedTemplate = formatAsHtml(processedTemplate);
           break;
         case "email":
-          processedTemplate = this.formatAsEmail(processedTemplate);
+          processedTemplate = formatAsEmail(processedTemplate);
           break;
         case "markdown":
-          processedTemplate = this.formatAsMarkdown(processedTemplate);
+          processedTemplate = formatAsMarkdown(processedTemplate);
           break;
         case "json":
-          processedTemplate = this.formatAsJson(processedTemplate, allVariables);
+          processedTemplate = formatAsJson(processedTemplate, allVariables);
           break;
       }
 
@@ -204,78 +269,18 @@ export const templateEngine: Integration = createIntegration({
           processedTemplate,
           finalOutput,
           variableCount: Object.keys(allVariables).length,
-          substitutionCount: this.countSubstitutions(template, allVariables),
+          substitutionCount: countSubstitutions(template, allVariables),
           timestamp,
         },
         metadata: { nodeType: "logic", subtype: "template_engine" },
       };
     },
 
-    getVariablePatterns(syntax: string, custom: string): string[] {
-      switch (syntax) {
-        case "handlebars":
-        case "mustache":
-          return ["{{variable}}"];
-        case "dollar":
-          return ["{{$variable}}"];
-        case "percent":
-          return ["%variable%"];
-        case "custom":
-          if (custom) {
-            const [start, end] = custom.split(",");
-            return [`${start}variable${end}`];
-          }
-          return ["{{variable}}"];
-        default:
-          return ["{{variable}}"];
-      }
-    },
 
-    formatAsHtml(template: string): string {
-      return template
-        .replace(/\n/g, "<br>")
-        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
-        .replace(/\*(.*?)\*/g, "<em>$1</em>");
-    },
 
-    formatAsEmail(template: string): string {
-      return `
-        <html>
-          <body>
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-              ${this.formatAsHtml(template)}
-            </div>
-          </body>
-        </html>
-      `.trim();
-    },
 
-    formatAsMarkdown(template: string): string {
-      return template
-        .replace(/\*\*(.*?)\*\*/g, "**$1**")
-        .replace(/\*(.*?)\*/g, "*$1*")
-        .replace(/\n/g, "\n\n");
-    },
 
-    formatAsJson(template: string, variables: Record<string, unknown>): string {
-      return JSON.stringify({
-        template: template,
-        variables: variables,
-        processed: template,
-      }, null, 2);
-    },
 
-    countSubstitutions(template: string, variables: Record<string, unknown>): number {
-      let count = 0;
-      for (const key of Object.keys(variables)) {
-        const regex = new RegExp(`{{${key}}}`, 'g');
-        const matches = template.match(regex);
-        if (matches) {
-          count += matches.length;
-        }
-      }
-      return count;
-    },
 
     validate(config) {
       const errors: Record<string, string> = {};
