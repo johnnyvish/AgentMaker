@@ -78,6 +78,11 @@ interface AutomationContextType {
   setCopiedField: (field: string | null) => void;
   setCurrentWorkflowId: (id: string | null) => void;
 
+  // Panel management
+  openSidebar: () => void;
+  openChatPanel: () => void;
+  closeAllPanels: () => void;
+
   // Operations
   getIntegration: (id: string) => Integration | undefined;
   getTriggerIntegrations: () => Integration[];
@@ -169,6 +174,34 @@ export const AutomationProvider = ({ children }: AutomationProviderProps) => {
 
   // Copy state
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Panel management helpers
+  const openSidebar = useCallback(() => {
+    setSidebarOpen(true);
+    // On mobile, close other panels when sidebar opens
+    if (window.innerWidth < 768) {
+      setShowChatPanel(false);
+      setSelectedNode(null);
+      setShowExecutionPanel(false);
+    }
+  }, []);
+
+  const openChatPanel = useCallback(() => {
+    setShowChatPanel(true);
+    // On mobile, close other panels when chat opens
+    if (window.innerWidth < 768) {
+      setSidebarOpen(false);
+      setSelectedNode(null);
+      setShowExecutionPanel(false);
+    }
+  }, []);
+
+  const closeAllPanels = useCallback(() => {
+    setSidebarOpen(false);
+    setShowChatPanel(false);
+    setSelectedNode(null);
+    setShowExecutionPanel(false);
+  }, []);
 
   // Current workflow ID
   const [currentWorkflowId, setCurrentWorkflowId] = useState<string | null>(
@@ -478,6 +511,11 @@ export const AutomationProvider = ({ children }: AutomationProviderProps) => {
     loadWorkflow,
     restoreExecutionState,
     restoreLatestExecution,
+
+    // Panel management
+    openSidebar,
+    openChatPanel,
+    closeAllPanels,
   };
 
   return (

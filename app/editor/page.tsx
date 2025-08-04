@@ -356,13 +356,14 @@ function WorkflowEditorContent() {
     setNodes,
     setEdges,
     setSelectedNode,
-    setSidebarOpen,
     setShowExecutionPanel,
     setShowChatPanel,
     setWorkflowName,
     setCurrentWorkflowId,
     restoreLatestExecution,
     restoreExecutionState,
+    openSidebar,
+    openChatPanel,
   } = useAutomationContext();
 
   // Load automation from URL parameter
@@ -658,7 +659,7 @@ function WorkflowEditorContent() {
         <div className="flex-1 relative">
           {!sidebarOpen && (
             <button
-              onClick={() => setSidebarOpen(true)}
+              onClick={openSidebar}
               className="absolute top-6 left-6 z-10 p-3 bg-[var(--primary)] rounded-xl shadow-lg hover:bg-[var(--primary)]/90 transition-colors"
             >
               {getIcon("plus", "w-6 h-6", "text-[var(--primary-foreground)]")}
@@ -720,7 +721,7 @@ function WorkflowEditorContent() {
       </div>
 
       {/* Chat Button */}
-      <ChatButton onClick={() => setShowChatPanel(true)} />
+      <ChatButton onClick={openChatPanel} />
     </div>
   );
 }

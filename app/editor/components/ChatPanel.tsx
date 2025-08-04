@@ -13,6 +13,7 @@ interface Message {
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpen?: () => void;
 }
 
 const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
@@ -93,27 +94,27 @@ const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
     <div
       className={`
         bg-[var(--card)] border-l border-[var(--border)] transition-all duration-300 ease-in-out flex flex-col z-[60]
-        ${isOpen ? "w-80 md:w-96" : "w-0 overflow-hidden"}
+        ${isOpen ? "w-80 sm:w-96 md:w-[28rem]" : "w-0 overflow-hidden"}
       `}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-[var(--primary)] rounded-lg">
+      <div className="flex items-center justify-between p-2 sm:p-4 border-b border-[var(--border)]">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+          <div className="p-2 bg-[var(--primary)] rounded-lg flex-shrink-0">
             <Bot className="w-5 h-5 text-[var(--primary-foreground)]" />
           </div>
-          <div>
-            <h3 className="font-semibold text-[var(--foreground)]">
+          <div className="min-w-0 flex-1">
+            <h3 className="font-semibold text-[var(--foreground)] text-sm sm:text-base truncate">
               AI Assistant
             </h3>
-            <p className="text-sm text-[var(--muted-foreground)]">
+            <p className="text-xs sm:text-sm text-[var(--muted-foreground)] truncate">
               Automation helper
             </p>
           </div>
         </div>
         <button
           onClick={onClose}
-          className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors"
+          className="p-2 hover:bg-[var(--muted)] rounded-lg transition-colors flex-shrink-0 ml-2"
         >
           <X className="w-5 h-5" />
         </button>
@@ -193,20 +194,20 @@ const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-[var(--border)]">
+      <div className="p-2 sm:p-4 border-t border-[var(--border)]">
         <div className="flex space-x-2">
           <input
             type="text"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder="Ask me anything about automations..."
-            className="flex-1 px-4 py-2 bg-[var(--muted)] border border-[var(--border)] rounded-xl focus:outline-none focus:ring-2 focus:ring-[var(--ring)] text-[var(--foreground)] placeholder-[var(--muted-foreground)]"
+            placeholder="Ask me anything..."
+            className="flex-1 min-w-0 px-3 py-2 bg-[var(--muted)] border border-[var(--border)] rounded-lg focus:outline-none focus:ring-2 focus:ring-[var(--ring)] text-[var(--foreground)] placeholder-[var(--muted-foreground)] text-sm"
           />
           <button
             onClick={handleSend}
             disabled={!inputValue.trim() || isTyping}
-            className="px-4 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-xl hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-2 sm:px-3 py-2 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-lg hover:bg-[var(--primary)]/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex-shrink-0 w-10 sm:w-auto flex items-center justify-center"
           >
             <Send className="w-4 h-4" />
           </button>
