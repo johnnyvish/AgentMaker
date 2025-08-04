@@ -57,6 +57,9 @@ import {
   GitBranch,
   ShieldCheck,
   Layers,
+  // Additional icons for triggers
+  FileSearch,
+  Clipboard,
 } from "lucide-react";
 
 // Brand icons from react-icons
@@ -230,6 +233,10 @@ export const getIcon = (
       return <ShieldCheck className={iconClass} />;
     case "layers":
       return <Layers className={iconClass} />;
+    case "file-search":
+      return <FileSearch className={iconClass} />;
+    case "clipboard":
+      return <Clipboard className={iconClass} />;
 
     // Brand icons
     case "slack":

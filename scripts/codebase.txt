@@ -1604,6 +1604,12 @@ import { parseExpression } from "../expression";
 import { manualTrigger } from "./triggers/manual-trigger";
 import { webhookTrigger } from "./triggers/webhook-trigger";
 import { scheduleTrigger } from "./triggers/schedule-trigger";
+
+// New Triggers
+import { emailTrigger } from "./triggers/email-trigger";
+import { formTrigger } from "./triggers/form-trigger";
+import { databaseTrigger } from "./triggers/database-trigger";
+import { fileWatcherTrigger } from "./triggers/file-watcher-trigger";
 import { slackSendMessage } from "./actions/slack-send-message";
 import { setVariable } from "./actions/set-variable";
 import { emailSend } from "./actions/email-send";
@@ -1613,6 +1619,63 @@ import { aiIntegration } from "./actions/ai";
 import { filterCondition } from "./logic/filter-condition";
 import { branchCondition } from "./logic/branch-condition";
 import { transformData } from "./logic/transform-data";
+
+// New Logic Nodes
+import { iteratorLoop } from "./logic/iterator-loop";
+import { switchCase } from "./logic/switch-case";
+import { dataValidator } from "./logic/data-validator";
+import { aggregator } from "./logic/aggregator";
+import { router } from "./logic/router";
+
+// Communication & Messaging
+import { discordSendMessage } from "./actions/discord-send-message";
+import { teamsSendMessage } from "./actions/teams-send-message";
+import { telegramSendMessage } from "./actions/telegram-send-message";
+
+// Databases & Storage
+import { postgresInsert } from "./actions/postgres-insert";
+import { sheetsAppendRow } from "./actions/sheets-append-row";
+import { airtableCreateRecord } from "./actions/airtable-create-record";
+import { googleSheetsAppend } from "./actions/google-sheets-append";
+import { databaseInsert } from "./actions/database-insert";
+import { databaseSelect } from "./actions/database-select";
+
+// Payments & Finance
+import { stripeCreatePayment } from "./actions/stripe-create-payment";
+import { paypalSendPayment } from "./actions/paypal-send-payment";
+
+// CRM & Sales
+import { hubspotCreateContact } from "./actions/hubspot-create-contact";
+import { salesforceCreateLead } from "./actions/salesforce-create-lead";
+
+// Project Management
+import { asanaCreateTask } from "./actions/asana-create-task";
+import { trelloCreateCard } from "./actions/trello-create-card";
+
+// Cloud Storage
+import { s3UploadFile } from "./actions/s3-upload-file";
+import { driveUploadFile } from "./actions/drive-upload-file";
+
+// Email Marketing
+import { mailchimpAddSubscriber } from "./actions/mailchimp-add-subscriber";
+import { sendgridSendEmail } from "./actions/sendgrid-send-email";
+
+// Social Media
+import { twitterPostTweet } from "./actions/twitter-post-tweet";
+import { linkedinCreatePost } from "./actions/linkedin-create-post";
+
+// Development Tools
+import { githubCreateIssue } from "./actions/github-create-issue";
+import { jiraCreateIssue } from "./actions/jira-create-issue";
+
+// Business Tools
+import { zoomCreateMeeting } from "./actions/zoom-create-meeting";
+import { notionCreatePage } from "./actions/notion-create-page";
+
+// Additional Integrations
+import { smsSend } from "./actions/sms-send";
+import { redisSet } from "./actions/redis-set";
+import { cloudinaryUploadImage } from "./actions/cloudinary-upload-image";
 
 // ============================================
 // INTEGRATION REGISTRY CLASS
@@ -1628,6 +1691,10 @@ class IntegrationRegistry {
       manualTrigger,
       webhookTrigger,
       scheduleTrigger,
+      emailTrigger,
+      formTrigger,
+      databaseTrigger,
+      fileWatcherTrigger,
 
       // Actions
       slackSendMessage,
@@ -1637,10 +1704,65 @@ class IntegrationRegistry {
       delay,
       aiIntegration,
 
+      // Communication & Messaging
+      discordSendMessage,
+      teamsSendMessage,
+      telegramSendMessage,
+
+      // Databases & Storage
+      postgresInsert,
+      sheetsAppendRow,
+      airtableCreateRecord,
+      googleSheetsAppend,
+      databaseInsert,
+      databaseSelect,
+
+      // Payments & Finance
+      stripeCreatePayment,
+      paypalSendPayment,
+
+      // CRM & Sales
+      hubspotCreateContact,
+      salesforceCreateLead,
+
+      // Project Management
+      asanaCreateTask,
+      trelloCreateCard,
+
+      // Cloud Storage
+      s3UploadFile,
+      driveUploadFile,
+
+      // Email Marketing
+      mailchimpAddSubscriber,
+      sendgridSendEmail,
+
+      // Social Media
+      twitterPostTweet,
+      linkedinCreatePost,
+
+      // Development Tools
+      githubCreateIssue,
+      jiraCreateIssue,
+
+      // Business Tools
+      zoomCreateMeeting,
+      notionCreatePage,
+
+      // Additional Integrations
+      smsSend,
+      redisSet,
+      cloudinaryUploadImage,
+
       // Logic
       filterCondition,
       branchCondition,
       transformData,
+      iteratorLoop,
+      switchCase,
+      dataValidator,
+      aggregator,
+      router,
     ]);
   }
 
@@ -1907,6 +2029,309 @@ export const scheduleTrigger: Integration = createIntegration({
 }); 
 ----- Content End -----
 
+===== File: lib/integrations/triggers/file-watcher-trigger.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const fileWatcherTrigger: Integration = createIntegration({
+  id: "file_watcher_trigger",
+  name: "File Watcher",
+  category: "trigger",
+  description: "Trigger when files are created, modified, or deleted",
+  icon: "file-search",
+  version: "1.0.0",
+  
+  hasInputHandle: false,
+  
+  schema: {
+    fields: [
+      {
+        key: "path",
+        type: "text",
+        label: "Directory Path",
+        placeholder: "/uploads/ or C:\\uploads\\",
+        required: true,
+      },
+      {
+        key: "events",
+        type: "select",
+        label: "Watch Events",
+        required: true,
+        options: [
+          { label: "Created", value: "created" },
+          { label: "Modified", value: "modified" },
+          { label: "Deleted", value: "deleted" },
+          { label: "All Events", value: "all" },
+        ],
+      },
+      {
+        key: "file_pattern",
+        type: "text",
+        label: "File Pattern (regex)",
+        placeholder: ".*\\.csv$ or .*\\.(jpg|png|gif)$",
+        required: false,
+      },
+      {
+        key: "recursive",
+        type: "boolean",
+        label: "Watch Subdirectories",
+        required: false,
+      },
+      {
+        key: "include_file_info",
+        type: "boolean",
+        label: "Include File Information",
+        required: false,
+      },
+      {
+        key: "max_file_size",
+        type: "number",
+        label: "Max File Size (MB)",
+        placeholder: "100",
+        required: false,
+      },
+      {
+        key: "ignore_patterns",
+        type: "textarea",
+        label: "Ignore Patterns (JSON array)",
+        placeholder: '["*.tmp", "*.log", ".DS_Store"]',
+        required: false,
+        validation: (value: unknown) => {
+          if (!value) return null;
+          if (typeof value !== "string") {
+            return "Ignore patterns must be a JSON string";
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (!Array.isArray(parsed)) {
+              return "Ignore patterns must be a JSON array";
+            }
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+    ],
+    required: ["path", "events"],
+  },
+
+  executor: {
+    async execute(config) {
+      // Simulate file watching delay
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      
+      const path = config.path as string;
+      const events = config.events as string;
+      const filePattern = config.file_pattern as string;
+      const recursive = config.recursive as boolean || false;
+      const includeFileInfo = config.include_file_info as boolean || false;
+      const maxFileSize = (config.max_file_size as number) || 100;
+      
+      let ignorePatterns: string[] = [];
+      if (config.ignore_patterns) {
+        try {
+          ignorePatterns = JSON.parse(config.ignore_patterns as string);
+        } catch (e) {
+          return {
+            success: false,
+            error: "Invalid ignore patterns JSON format",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "trigger", subtype: "file_watcher_trigger" },
+          };
+        }
+      }
+
+      // Mock file events
+      const mockFileEvents = [
+        {
+          event_type: "created",
+          file_path: path + "data_2024_01_15.csv",
+          file_name: "data_2024_01_15.csv",
+          file_size: 1024000, // 1MB
+          file_extension: ".csv",
+          modified_time: new Date().toISOString(),
+          created_time: new Date().toISOString(),
+          is_directory: false,
+          relative_path: "data_2024_01_15.csv",
+          absolute_path: path + "data_2024_01_15.csv",
+          file_info: includeFileInfo ? {
+            permissions: "rw-r--r--",
+            owner: "user",
+            group: "users",
+            inode: 12345,
+            device: 1,
+            hard_links: 1,
+            access_time: new Date().toISOString(),
+            change_time: new Date().toISOString(),
+          } : null,
+        },
+        {
+          event_type: "modified",
+          file_path: path + "config.json",
+          file_name: "config.json",
+          file_size: 2048,
+          file_extension: ".json",
+          modified_time: new Date().toISOString(),
+          created_time: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+          is_directory: false,
+          relative_path: "config.json",
+          absolute_path: path + "config.json",
+          file_info: includeFileInfo ? {
+            permissions: "rw-r--r--",
+            owner: "user",
+            group: "users",
+            inode: 12346,
+            device: 1,
+            hard_links: 1,
+            access_time: new Date().toISOString(),
+            change_time: new Date().toISOString(),
+          } : null,
+        },
+        {
+          event_type: "created",
+          file_path: path + "images/logo.png",
+          file_name: "logo.png",
+          file_size: 512000, // 512KB
+          file_extension: ".png",
+          modified_time: new Date().toISOString(),
+          created_time: new Date().toISOString(),
+          is_directory: false,
+          relative_path: "images/logo.png",
+          absolute_path: path + "images/logo.png",
+          file_info: includeFileInfo ? {
+            permissions: "rw-r--r--",
+            owner: "user",
+            group: "users",
+            inode: 12347,
+            device: 1,
+            hard_links: 1,
+            access_time: new Date().toISOString(),
+            change_time: new Date().toISOString(),
+          } : null,
+        }
+      ];
+
+      // Filter events based on events setting
+      let filteredEvents = mockFileEvents;
+      if (events !== "all") {
+        filteredEvents = mockFileEvents.filter(event => event.event_type === events);
+      }
+
+      // Apply file pattern filter if specified
+      if (filePattern) {
+        try {
+          const regex = new RegExp(filePattern);
+          filteredEvents = filteredEvents.filter(event => regex.test(event.file_name));
+        } catch (e) {
+          return {
+            success: false,
+            error: "Invalid file pattern regex",
+            data: {
+              pattern: filePattern,
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "trigger", subtype: "file_watcher_trigger" },
+          };
+        }
+      }
+
+      // Apply ignore patterns
+      if (ignorePatterns.length > 0) {
+        filteredEvents = filteredEvents.filter(event => {
+          return !ignorePatterns.some(pattern => {
+            // Simple glob-like pattern matching
+            const regexPattern = pattern
+              .replace(/\./g, "\\.")
+              .replace(/\*/g, ".*")
+              .replace(/\?/g, ".");
+            const regex = new RegExp(regexPattern);
+            return regex.test(event.file_name);
+          });
+        });
+      }
+
+      // Apply max file size filter
+      filteredEvents = filteredEvents.filter(event => {
+        const fileSizeMB = event.file_size / (1024 * 1024);
+        return fileSizeMB <= maxFileSize;
+      });
+
+      // Apply recursive filter
+      if (!recursive) {
+        filteredEvents = filteredEvents.filter(event => {
+          return !event.relative_path.includes("/") && !event.relative_path.includes("\\");
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          events: filteredEvents,
+          total_events: filteredEvents.length,
+          path,
+          watch_events: events,
+          file_pattern: filePattern || null,
+          recursive,
+          include_file_info: includeFileInfo,
+          max_file_size_mb: maxFileSize,
+          ignore_patterns: ignorePatterns.length > 0 ? ignorePatterns : null,
+          trigger_time: new Date().toISOString(),
+        },
+        metadata: { nodeType: "trigger", subtype: "file_watcher_trigger" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.path) {
+        errors.path = "Directory path is required";
+      } else if (typeof config.path !== "string" || config.path.trim().length === 0) {
+        errors.path = "Directory path must be a non-empty string";
+      }
+
+      if (!config.events) {
+        errors.events = "Watch events are required";
+      }
+
+      if (config.file_pattern) {
+        try {
+          new RegExp(config.file_pattern as string);
+        } catch (e) {
+          errors.file_pattern = "Invalid file pattern regex";
+        }
+      }
+
+      if (config.max_file_size && 
+          (typeof config.max_file_size !== "number" || config.max_file_size <= 0)) {
+        errors.max_file_size = "Max file size must be a positive number";
+      }
+
+      if (config.ignore_patterns) {
+        try {
+          const parsed = JSON.parse(config.ignore_patterns as string);
+          if (!Array.isArray(parsed)) {
+            errors.ignore_patterns = "Ignore patterns must be a JSON array";
+          }
+        } catch (e) {
+          errors.ignore_patterns = "Invalid JSON format for ignore patterns";
+        }
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+}); 
+----- Content End -----
+
 ===== File: lib/integrations/triggers/webhook-trigger.ts =====
 Type: .ts
 ----- Content Start -----
@@ -1974,6 +2399,508 @@ export const webhookTrigger: Integration = createIntegration({
 }); 
 ----- Content End -----
 
+===== File: lib/integrations/triggers/email-trigger.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const emailTrigger: Integration = createIntegration({
+  id: "email_trigger",
+  name: "Email Received",
+  category: "trigger",
+  description: "Trigger when emails are received",
+  icon: "mail",
+  version: "1.0.0",
+  
+  hasInputHandle: false,
+  
+  schema: {
+    fields: [
+      {
+        key: "email_address",
+        type: "email",
+        label: "Monitor Email Address",
+        placeholder: "automation@company.com",
+        required: true,
+      },
+      {
+        key: "subject_filter",
+        type: "text",
+        label: "Subject Filter (optional)",
+        placeholder: "Order # or [URGENT]",
+        required: false,
+      },
+      {
+        key: "sender_filter",
+        type: "text",
+        label: "Sender Filter (optional)",
+        placeholder: "@important-domain.com or specific@email.com",
+        required: false,
+      },
+      {
+        key: "include_attachments",
+        type: "boolean",
+        label: "Include Attachment Info",
+        required: false,
+      },
+      {
+        key: "max_emails_per_trigger",
+        type: "number",
+        label: "Max Emails per Trigger",
+        placeholder: "10",
+        required: false,
+      },
+      {
+        key: "webhook_url",
+        type: "url",
+        label: "Webhook URL (generated)",
+        placeholder: "https://api.yourapp.com/webhooks/email/xyz123",
+        required: false,
+      },
+    ],
+    required: ["email_address"],
+  },
+
+  executor: {
+    async execute(config) {
+      // Simulate email monitoring delay
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      const emailAddress = config.email_address as string;
+      const subjectFilter = config.subject_filter as string;
+      const senderFilter = config.sender_filter as string;
+      const includeAttachments = config.include_attachments as boolean || false;
+      const maxEmails = (config.max_emails_per_trigger as number) || 1;
+
+      // Mock email data
+      const mockEmails = [
+        {
+          message_id: "<msg123@gmail.com>",
+          from: "customer@example.com",
+          to: emailAddress,
+          subject: "Order #12345 - Urgent Question",
+          body: "Hi, I have a question about my recent order. The delivery date seems to be delayed and I need this resolved quickly. Please let me know the status of my order #12345.",
+          received_at: new Date().toISOString(),
+          attachments: includeAttachments ? [
+            {
+              filename: "receipt.pdf",
+              size: 45000,
+              content_type: "application/pdf",
+              content_id: "att_001"
+            }
+          ] : [],
+          headers: {
+            "message-id": "<msg123@gmail.com>",
+            "date": new Date().toISOString(),
+            "from": "customer@example.com",
+            "to": emailAddress,
+            "subject": "Order #12345 - Urgent Question",
+            "content-type": "text/plain; charset=UTF-8"
+          }
+        },
+        {
+          message_id: "<msg456@gmail.com>",
+          from: "support@important-domain.com",
+          to: emailAddress,
+          subject: "[URGENT] System Alert",
+          body: "Critical system alert: Database connection timeout detected. Immediate attention required.",
+          received_at: new Date(Date.now() - 300000).toISOString(), // 5 minutes ago
+          attachments: [],
+          headers: {
+            "message-id": "<msg456@gmail.com>",
+            "date": new Date(Date.now() - 300000).toISOString(),
+            "from": "support@important-domain.com",
+            "to": emailAddress,
+            "subject": "[URGENT] System Alert",
+            "content-type": "text/plain; charset=UTF-8"
+          }
+        }
+      ];
+
+      // Apply filters
+      let filteredEmails = mockEmails;
+      
+      if (subjectFilter) {
+        filteredEmails = filteredEmails.filter(email => 
+          email.subject.toLowerCase().includes(subjectFilter.toLowerCase())
+        );
+      }
+      
+      if (senderFilter) {
+        filteredEmails = filteredEmails.filter(email => 
+          email.from.toLowerCase().includes(senderFilter.toLowerCase())
+        );
+      }
+
+      // Limit to max emails
+      filteredEmails = filteredEmails.slice(0, maxEmails);
+
+      return {
+        success: true,
+        data: {
+          emails: filteredEmails,
+          total_emails: filteredEmails.length,
+          email_address: emailAddress,
+          subject_filter: subjectFilter || null,
+          sender_filter: senderFilter || null,
+          include_attachments: includeAttachments,
+          max_emails_per_trigger: maxEmails,
+          trigger_time: new Date().toISOString(),
+          webhook_url: config.webhook_url || null,
+        },
+        metadata: { nodeType: "trigger", subtype: "email_trigger" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.email_address) {
+        errors.email_address = "Email address is required";
+      } else {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(config.email_address as string)) {
+          errors.email_address = "Invalid email address format";
+        }
+      }
+
+      if (config.max_emails_per_trigger && 
+          (typeof config.max_emails_per_trigger !== "number" || config.max_emails_per_trigger <= 0)) {
+        errors.max_emails_per_trigger = "Max emails must be a positive number";
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/triggers/database-trigger.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+// Helper function
+function matchesColumnFilters(
+  values: Record<string, unknown>,
+  filters: Record<string, unknown>
+): boolean {
+  for (const [column, filterValue] of Object.entries(filters)) {
+    const value = values[column];
+
+    if (typeof filterValue === "object" && filterValue !== null) {
+      // Handle operators like {"$in": ["high", "urgent"]}
+      for (const [operator, operatorValue] of Object.entries(filterValue)) {
+        switch (operator) {
+          case "$in":
+            if (
+              !Array.isArray(operatorValue) ||
+              !operatorValue.includes(value)
+            ) {
+              return false;
+            }
+            break;
+          case "$nin":
+            if (Array.isArray(operatorValue) && operatorValue.includes(value)) {
+              return false;
+            }
+            break;
+          case "$gt":
+            if (typeof value !== "number" || value <= operatorValue) {
+              return false;
+            }
+            break;
+          case "$gte":
+            if (typeof value !== "number" || value < operatorValue) {
+              return false;
+            }
+            break;
+          case "$lt":
+            if (typeof value !== "number" || value >= operatorValue) {
+              return false;
+            }
+            break;
+          case "$lte":
+            if (typeof value !== "number" || value > operatorValue) {
+              return false;
+            }
+            break;
+          case "$eq":
+            if (value !== operatorValue) {
+              return false;
+            }
+            break;
+          case "$ne":
+            if (value === operatorValue) {
+              return false;
+            }
+            break;
+          case "$like":
+            if (
+              typeof value !== "string" ||
+              !value.includes(operatorValue as string)
+            ) {
+              return false;
+            }
+            break;
+        }
+      }
+    } else {
+      // Simple equality check
+      if (value !== filterValue) {
+        return false;
+      }
+    }
+  }
+
+  return true;
+}
+
+export const databaseTrigger: Integration = createIntegration({
+  id: "database_trigger",
+  name: "Database Change",
+  category: "trigger",
+  description: "Trigger on database INSERT, UPDATE, or DELETE",
+  icon: "database",
+  version: "1.0.0",
+
+  hasInputHandle: false,
+
+  schema: {
+    fields: [
+      {
+        key: "connection_string",
+        type: "text",
+        label: "Database Connection",
+        placeholder: "postgresql://user:pass@host:5432/db",
+        required: true,
+      },
+      {
+        key: "table_name",
+        type: "text",
+        label: "Table Name",
+        placeholder: "users",
+        required: true,
+      },
+      {
+        key: "trigger_events",
+        type: "select",
+        label: "Trigger Events",
+        required: true,
+        options: [
+          { label: "INSERT", value: "insert" },
+          { label: "UPDATE", value: "update" },
+          { label: "DELETE", value: "delete" },
+          { label: "All Events", value: "all" },
+        ],
+      },
+      {
+        key: "column_filters",
+        type: "textarea",
+        label: "Column Filters (JSON)",
+        placeholder:
+          '{"status": "active", "priority": {"$in": ["high", "urgent"]}}',
+        required: false,
+        validation: (value: unknown) => {
+          if (!value) return null;
+          if (typeof value !== "string") {
+            return "Column filters must be a JSON string";
+          }
+          try {
+            JSON.parse(value);
+            return null;
+          } catch {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "include_old_values",
+        type: "boolean",
+        label: "Include Old Values (for UPDATE/DELETE)",
+        required: false,
+      },
+      {
+        key: "batch_size",
+        type: "number",
+        label: "Batch Size",
+        placeholder: "100",
+        required: false,
+      },
+    ],
+    required: ["connection_string", "table_name", "trigger_events"],
+  },
+
+  executor: {
+    async execute(config) {
+      // Simulate database monitoring delay
+      await new Promise((resolve) => setTimeout(resolve, 400));
+
+      const connectionString = config.connection_string as string;
+      const tableName = config.table_name as string;
+      const triggerEvents = config.trigger_events as string;
+      const includeOldValues = (config.include_old_values as boolean) || false;
+      const batchSize = (config.batch_size as number) || 100;
+
+      let columnFilters = {};
+      if (config.column_filters) {
+        try {
+          columnFilters = JSON.parse(config.column_filters as string);
+        } catch {
+          return {
+            success: false,
+            error: "Invalid column filters JSON format",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "trigger", subtype: "database_trigger" },
+          };
+        }
+      }
+
+      // Mock database change events
+      const mockEvents = [
+        {
+          event_type: "insert",
+          table_name: tableName,
+          record_id: "123e4567-e89b-12d3-a456-426614174000",
+          new_values: {
+            id: "123e4567-e89b-12d3-a456-426614174000",
+            email: "user@example.com",
+            name: "John Doe",
+            status: "active",
+            priority: "high",
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          old_values: null,
+          changed_columns: [
+            "id",
+            "email",
+            "name",
+            "status",
+            "priority",
+            "created_at",
+            "updated_at",
+          ],
+          timestamp: new Date().toISOString(),
+        },
+        {
+          event_type: "update",
+          table_name: tableName,
+          record_id: "456e7890-e89b-12d3-a456-426614174001",
+          new_values: {
+            id: "456e7890-e89b-12d3-a456-426614174001",
+            email: "jane@example.com",
+            name: "Jane Smith",
+            status: "inactive",
+            priority: "medium",
+            updated_at: new Date().toISOString(),
+          },
+          old_values: includeOldValues
+            ? {
+                id: "456e7890-e89b-12d3-a456-426614174001",
+                email: "jane@example.com",
+                name: "Jane Smith",
+                status: "active",
+                priority: "high",
+                updated_at: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
+              }
+            : null,
+          changed_columns: ["status", "priority", "updated_at"],
+          timestamp: new Date().toISOString(),
+        },
+      ];
+
+      // Filter events based on trigger_events setting
+      let filteredEvents = mockEvents;
+      if (triggerEvents !== "all") {
+        filteredEvents = mockEvents.filter(
+          (event) => event.event_type === triggerEvents
+        );
+      }
+
+      // Apply column filters if specified
+      if (Object.keys(columnFilters).length > 0) {
+        filteredEvents = filteredEvents.filter((event) => {
+          return matchesColumnFilters(event.new_values, columnFilters);
+        });
+      }
+
+      // Limit to batch size
+      filteredEvents = filteredEvents.slice(0, batchSize);
+
+      return {
+        success: true,
+        data: {
+          events: filteredEvents,
+          total_events: filteredEvents.length,
+          table_name: tableName,
+          trigger_events: triggerEvents,
+          column_filters:
+            Object.keys(columnFilters).length > 0 ? columnFilters : null,
+          include_old_values: includeOldValues,
+          batch_size: batchSize,
+          connection_string: connectionString.replace(/\/\/.*@/, "//***:***@"), // Mask credentials
+          trigger_time: new Date().toISOString(),
+        },
+        metadata: { nodeType: "trigger", subtype: "database_trigger" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.connection_string) {
+        errors.connection_string = "Database connection string is required";
+      }
+
+      if (!config.table_name) {
+        errors.table_name = "Table name is required";
+      } else if (
+        typeof config.table_name !== "string" ||
+        config.table_name.trim().length === 0
+      ) {
+        errors.table_name = "Table name must be a non-empty string";
+      }
+
+      if (!config.trigger_events) {
+        errors.trigger_events = "Trigger events are required";
+      }
+
+      if (config.column_filters) {
+        try {
+          const parsed = JSON.parse(config.column_filters as string);
+          if (typeof parsed !== "object" || parsed === null) {
+            errors.column_filters = "Column filters must be a JSON object";
+          }
+        } catch {
+          errors.column_filters = "Invalid JSON format for column filters";
+        }
+      }
+
+      if (
+        config.batch_size &&
+        (typeof config.batch_size !== "number" || config.batch_size <= 0)
+      ) {
+        errors.batch_size = "Batch size must be a positive number";
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+});
+
+----- Content End -----
+
 ===== File: lib/integrations/triggers/manual-trigger.ts =====
 Type: .ts
 ----- Content Start -----
@@ -2020,6 +2947,353 @@ export const manualTrigger: Integration = createIntegration({
 }); 
 ----- Content End -----
 
+===== File: lib/integrations/triggers/form-trigger.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const formTrigger: Integration = createIntegration({
+  id: "form_trigger",
+  name: "Form Submission",
+  category: "trigger",
+  description: "Trigger when forms are submitted",
+  icon: "clipboard",
+  version: "1.0.0",
+  
+  hasInputHandle: false,
+  
+  schema: {
+    fields: [
+      {
+        key: "form_id",
+        type: "text",
+        label: "Form ID",
+        placeholder: "contact-form-2024",
+        required: true,
+      },
+      {
+        key: "webhook_url",
+        type: "url",
+        label: "Webhook URL (generated)",
+        placeholder: "https://api.yourapp.com/webhooks/forms/xyz123",
+        required: false,
+      },
+      {
+        key: "field_filters",
+        type: "textarea",
+        label: "Field Filters (JSON)",
+        placeholder: '{"email": "required", "name": "required", "priority": "high"}',
+        required: false,
+        validation: (value: unknown) => {
+          if (!value) return null;
+          if (typeof value !== "string") {
+            return "Field filters must be a JSON string";
+          }
+          try {
+            JSON.parse(value);
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "include_metadata",
+        type: "boolean",
+        label: "Include Submission Metadata",
+        required: false,
+      },
+      {
+        key: "validate_fields",
+        type: "boolean",
+        label: "Validate Required Fields",
+        required: false,
+      },
+    ],
+    required: ["form_id"],
+  },
+
+  executor: {
+    async execute(config) {
+      // Simulate form processing delay
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      
+      const formId = config.form_id as string;
+      const includeMetadata = config.include_metadata as boolean || false;
+      const validateFields = config.validate_fields as boolean || false;
+      
+      let fieldFilters = {};
+      if (config.field_filters) {
+        try {
+          fieldFilters = JSON.parse(config.field_filters as string);
+        } catch (e) {
+          return {
+            success: false,
+            error: "Invalid field filters JSON format",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "trigger", subtype: "form_trigger" },
+          };
+        }
+      }
+
+      // Mock form submission data
+      const mockSubmission = {
+        form_id: formId,
+        submission_id: "sub_" + Date.now(),
+        submitted_at: new Date().toISOString(),
+        fields: {
+          name: "John Doe",
+          email: "john@example.com", 
+          message: "I'm interested in your product and would like to schedule a demo. Please contact me at your earliest convenience.",
+          phone: "+1-555-0123",
+          company: "Acme Corporation",
+          priority: "high",
+          budget: "50000-100000",
+          timeline: "3 months"
+        },
+        metadata: includeMetadata ? {
+          user_agent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+          ip_address: "192.168.1.100",
+          referrer: "https://google.com/search?q=automation+platform",
+          language: "en-US",
+          timezone: "America/New_York",
+          screen_resolution: "1920x1080",
+          form_load_time: "1.2s",
+          form_submit_time: "0.8s",
+          session_id: "sess_" + Math.random().toString(36).substr(2, 9),
+          utm_source: "google",
+          utm_medium: "cpc",
+          utm_campaign: "automation_2024"
+        } : {},
+        validation: validateFields ? {
+          is_valid: true,
+          errors: [],
+          warnings: []
+        } : null
+      };
+
+      // Apply field filters if specified
+      if (Object.keys(fieldFilters).length > 0) {
+        const filteredFields: Record<string, unknown> = {};
+        for (const [fieldName, filterValue] of Object.entries(fieldFilters)) {
+          if (fieldName in mockSubmission.fields) {
+            filteredFields[fieldName] = mockSubmission.fields[fieldName as keyof typeof mockSubmission.fields];
+          }
+        }
+        mockSubmission.fields = filteredFields as typeof mockSubmission.fields;
+      }
+
+      return {
+        success: true,
+        data: {
+          ...mockSubmission,
+          webhook_url: config.webhook_url || null,
+          field_filters: Object.keys(fieldFilters).length > 0 ? fieldFilters : null,
+          include_metadata: includeMetadata,
+          validate_fields: validateFields,
+          trigger_time: new Date().toISOString(),
+        },
+        metadata: { nodeType: "trigger", subtype: "form_trigger" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.form_id) {
+        errors.form_id = "Form ID is required";
+      } else if (typeof config.form_id !== "string" || config.form_id.trim().length === 0) {
+        errors.form_id = "Form ID must be a non-empty string";
+      }
+
+      if (config.field_filters) {
+        try {
+          const parsed = JSON.parse(config.field_filters as string);
+          if (typeof parsed !== "object" || parsed === null) {
+            errors.field_filters = "Field filters must be a JSON object";
+          }
+        } catch (e) {
+          errors.field_filters = "Invalid JSON format for field filters";
+        }
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/logic/iterator-loop.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration, WorkflowContext } from "../types";
+
+export const iteratorLoop: Integration = createIntegration({
+  id: "iterator_loop",
+  name: "Iterator",
+  category: "logic",
+  description: "Loop through arrays and process each item",
+  icon: "repeat",
+  version: "1.0.0",
+
+  schema: {
+    fields: [
+      {
+        key: "array",
+        type: "textarea",
+        label: "Array to Iterate",
+        placeholder: "{{$node.api-1.data.response.items}}",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "item_variable",
+        type: "text",
+        label: "Item Variable Name",
+        placeholder: "current_item",
+        required: true,
+        validation: (value: unknown) => {
+          if (
+            typeof value !== "string" ||
+            !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value)
+          ) {
+            return "Variable name must start with letter or underscore and contain only letters, numbers, and underscores";
+          }
+          return null;
+        },
+      },
+      {
+        key: "index_variable",
+        type: "text",
+        label: "Index Variable Name",
+        placeholder: "current_index",
+        required: false,
+        validation: (value: unknown) => {
+          if (
+            value &&
+            (typeof value !== "string" ||
+              !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(value))
+          ) {
+            return "Variable name must start with letter or underscore and contain only letters, numbers, and underscores";
+          }
+          return null;
+        },
+      },
+      {
+        key: "max_iterations",
+        type: "number",
+        label: "Max Iterations (safety limit)",
+        placeholder: "1000",
+        required: false,
+      },
+    ],
+    required: ["array", "item_variable"],
+  },
+
+  executor: {
+    async execute(config, context: WorkflowContext) {
+      const array = config.array as unknown;
+      const itemVarName = config.item_variable as string;
+      const indexVarName = config.index_variable as string;
+      const maxIterations = (config.max_iterations as number) || 1000;
+
+      // Ensure we have an array to iterate
+      if (!Array.isArray(array)) {
+        return {
+          success: false,
+          error: "Input is not an array",
+          data: {
+            input_type: typeof array,
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "logic", subtype: "iterator_loop" },
+        };
+      }
+
+      const results = [];
+      const actualArray = array.slice(0, maxIterations); // Respect max iterations limit
+
+      for (let i = 0; i < actualArray.length; i++) {
+        const item = actualArray[i];
+
+        // Set variables in context for this iteration
+        context.variables[itemVarName] = item;
+        if (indexVarName) {
+          context.variables[indexVarName] = i;
+        }
+
+        results.push({
+          index: i,
+          item: item,
+          processed_at: new Date().toISOString(),
+          variables_set: {
+            [itemVarName]: item,
+            ...(indexVarName && { [indexVarName]: i }),
+          },
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          total_items: array.length,
+          processed_items: actualArray.length,
+          results,
+          completed_iterations: actualArray.length,
+          max_iterations_limit: maxIterations,
+          timestamp: new Date().toISOString(),
+        },
+        metadata: { nodeType: "logic", subtype: "iterator_loop" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.array) {
+        errors.array = "Array to iterate is required";
+      }
+
+      if (!config.item_variable) {
+        errors.item_variable = "Item variable name is required";
+      } else if (
+        !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(config.item_variable as string)
+      ) {
+        errors.item_variable = "Invalid variable name format";
+      }
+
+      if (
+        config.index_variable &&
+        !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(config.index_variable as string)
+      ) {
+        errors.index_variable = "Invalid variable name format";
+      }
+
+      if (
+        config.max_iterations &&
+        (typeof config.max_iterations !== "number" ||
+          config.max_iterations <= 0)
+      ) {
+        errors.max_iterations = "Max iterations must be a positive number";
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+});
+
+----- Content End -----
+
 ===== File: lib/integrations/logic/transform-data.ts =====
 Type: .ts
 ----- Content Start -----
@@ -2032,7 +3306,7 @@ export const transformData: Integration = createIntegration({
   name: "Transform Data",
   category: "logic",
   description: "Transform and format data",
-  icon: "brain",
+  icon: "zap",
   version: "1.0.0",
 
   schema: {
@@ -2104,6 +3378,715 @@ export const transformData: Integration = createIntegration({
           timestamp,
         },
         metadata: { nodeType: "logic", subtype: "transform_data" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/logic/router.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+// Helper functions
+function evaluateCondition(data: unknown, condition: string): boolean {
+  // This is a simplified condition evaluator
+  // In a real implementation, you'd use a proper expression evaluator like expr-eval or similar
+  
+  // Handle simple equality checks
+  if (condition.includes("===")) {
+    const [field, value] = condition.split("===").map(s => s.trim().replace(/['"]/g, ""));
+    const fieldValue = getFieldValue(data, field);
+    return fieldValue === value;
+  }
+  
+  if (condition.includes("==")) {
+    const [field, value] = condition.split("==").map(s => s.trim().replace(/['"]/g, ""));
+    const fieldValue = getFieldValue(data, field);
+    return fieldValue == value; // Loose equality
+  }
+  
+  if (condition.includes("!=")) {
+    const [field, value] = condition.split("!=").map(s => s.trim().replace(/['"]/g, ""));
+    const fieldValue = getFieldValue(data, field);
+    return fieldValue !== value;
+  }
+  
+  // Handle contains checks
+  if (condition.includes(".includes(")) {
+    const fieldMatch = condition.match(/(\w+)\.includes\(['"]([^'"]+)['"]\)/);
+    if (fieldMatch) {
+      const [, field, value] = fieldMatch;
+      const fieldValue = getFieldValue(data, field);
+      return typeof fieldValue === "string" && fieldValue.includes(value);
+    }
+  }
+  
+  // Handle boolean checks
+  if (condition.includes("=== true") || condition.includes("=== false")) {
+    const field = condition.split("===")[0].trim();
+    const expectedValue = condition.includes("=== true");
+    const fieldValue = getFieldValue(data, field);
+    return Boolean(fieldValue) === expectedValue;
+  }
+  
+  // Default to false for unrecognized conditions
+  return false;
+}
+
+function getFieldValue(data: unknown, fieldPath: string): unknown {
+  if (!fieldPath) return data;
+  
+  const keys = fieldPath.split(".");
+  let value: unknown = data;
+  
+  for (const key of keys) {
+    if (value && typeof value === "object" && key in value) {
+      value = (value as Record<string, unknown>)[key];
+    } else {
+      return undefined;
+    }
+  }
+  
+  return value;
+}
+
+export const router: Integration = createIntegration({
+  id: "router",
+  name: "Router",
+  category: "logic",
+  description: "Route data to multiple paths simultaneously", 
+  icon: "workflow",
+  version: "1.0.0",
+  
+  schema: {
+    fields: [
+      {
+        key: "input_data",
+        type: "textarea",
+        label: "Input Data",
+        placeholder: "{{$node.webhook-1.data}}",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "routes",
+        type: "textarea",
+        label: "Route Configurations (JSON)",
+        placeholder: '{"urgent": {"condition": "priority === \\"high\\""}, "normal": {"condition": "priority === \\"normal\\""}}',
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string") {
+            return "Routes must be a JSON string";
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (typeof parsed !== "object" || parsed === null) {
+              return "Routes must be a JSON object";
+            }
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "default_route",
+        type: "text",
+        label: "Default Route",
+        placeholder: "fallback",
+        required: false,
+      },
+      {
+        key: "route_to_all",
+        type: "boolean",
+        label: "Route to All Matching Paths",
+        required: false,
+      },
+      {
+        key: "include_metadata",
+        type: "boolean",
+        label: "Include Routing Metadata",
+        required: false,
+      },
+    ],
+    required: ["input_data", "routes"],
+  },
+
+  executor: {
+    async execute(config) {
+      const inputData = config.input_data as unknown;
+      const routeToAll = config.route_to_all as boolean || false;
+      const includeMetadata = config.include_metadata as boolean || false;
+      const defaultRoute = config.default_route as string;
+      
+      let routes = {};
+      try {
+        routes = JSON.parse(config.routes as string);
+      } catch (e) {
+        return {
+          success: false,
+          error: "Invalid routes JSON format",
+          data: {
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "logic", subtype: "router" },
+        };
+      }
+
+      const activeRoutes: string[] = [];
+      const routeResults: Record<string, unknown> = {};
+      const routingMetadata: Record<string, unknown> = {};
+
+      // Evaluate each route condition
+      for (const [routeName, routeConfig] of Object.entries(routes)) {
+        const condition = (routeConfig as Record<string, unknown>).condition as string;
+        
+        if (condition) {
+          try {
+            // Simple condition evaluation (in a real implementation, you'd use a proper expression evaluator)
+            const isMatch = evaluateCondition(inputData, condition);
+            
+            if (isMatch) {
+              activeRoutes.push(routeName);
+              routeResults[routeName] = {
+                input_data: inputData,
+                route_name: routeName,
+                condition: condition,
+                matched: true,
+                timestamp: new Date().toISOString(),
+              };
+              
+              if (includeMetadata) {
+                routingMetadata[routeName] = {
+                  condition_evaluated: condition,
+                  evaluation_result: true,
+                  evaluation_time: new Date().toISOString(),
+                };
+              }
+              
+              // If not routing to all, stop after first match
+              if (!routeToAll) {
+                break;
+              }
+            } else if (includeMetadata) {
+              routingMetadata[routeName] = {
+                condition_evaluated: condition,
+                evaluation_result: false,
+                evaluation_time: new Date().toISOString(),
+              };
+            }
+          } catch (error) {
+            if (includeMetadata) {
+              routingMetadata[routeName] = {
+                condition_evaluated: condition,
+                evaluation_result: false,
+                evaluation_error: String(error),
+                evaluation_time: new Date().toISOString(),
+              };
+            }
+          }
+        }
+      }
+
+      // If no routes matched and default route is specified
+      if (activeRoutes.length === 0 && defaultRoute) {
+        activeRoutes.push(defaultRoute);
+        routeResults[defaultRoute] = {
+          input_data: inputData,
+          route_name: defaultRoute,
+          condition: "default",
+          matched: false,
+          is_default: true,
+          timestamp: new Date().toISOString(),
+        };
+      }
+
+      return {
+        success: true,
+        data: {
+          input_data: inputData,
+          active_routes: activeRoutes,
+          route_results: routeResults,
+          total_routes: Object.keys(routes).length,
+          active_route_count: activeRoutes.length,
+          route_to_all: routeToAll,
+          default_route: defaultRoute || null,
+          routing_metadata: includeMetadata ? routingMetadata : null,
+          timestamp: new Date().toISOString(),
+        },
+        metadata: { nodeType: "logic", subtype: "router" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.input_data) {
+        errors.input_data = "Input data is required";
+      }
+
+      if (!config.routes) {
+        errors.routes = "Routes configuration is required";
+      } else {
+        try {
+          const parsed = JSON.parse(config.routes as string);
+          if (typeof parsed !== "object" || parsed === null) {
+            errors.routes = "Routes must be a JSON object";
+          }
+        } catch (e) {
+          errors.routes = "Invalid JSON format for routes";
+        }
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/logic/data-validator.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+// Helper function
+function validateField(
+  fieldName: string,
+  value: unknown,
+  rule: string,
+  customValidators: Record<string, string>
+) {
+  const result = {
+    error: null as string | null,
+    warning: null as string | null,
+  };
+
+  switch (rule) {
+    case "required":
+      if (value === undefined || value === null || value === "") {
+        result.error = `Field '${fieldName}' is required`;
+      }
+      break;
+
+    case "email":
+      if (value && typeof value === "string") {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(value)) {
+          result.error = `Field '${fieldName}' must be a valid email address`;
+        }
+      }
+      break;
+
+    case "number":
+      if (value !== undefined && value !== null) {
+        if (typeof value !== "number" || isNaN(value)) {
+          result.error = `Field '${fieldName}' must be a number`;
+        }
+      }
+      break;
+
+    case "string":
+      if (value !== undefined && value !== null && typeof value !== "string") {
+        result.error = `Field '${fieldName}' must be a string`;
+      }
+      break;
+
+    case "boolean":
+      if (value !== undefined && value !== null && typeof value !== "boolean") {
+        result.error = `Field '${fieldName}' must be a boolean`;
+      }
+      break;
+
+    case "url":
+      if (value && typeof value === "string") {
+        try {
+          new URL(value);
+        } catch {
+          result.error = `Field '${fieldName}' must be a valid URL`;
+        }
+      }
+      break;
+
+    default:
+      // Check custom validators
+      if (customValidators[rule]) {
+        const customRule = customValidators[rule];
+        if (customRule.startsWith("regex:")) {
+          const regexPattern = customRule.substring(6);
+          try {
+            const regex = new RegExp(regexPattern);
+            if (value && typeof value === "string" && !regex.test(value)) {
+              result.error = `Field '${fieldName}' failed regex validation: ${regexPattern}`;
+            }
+          } catch (e) {
+            result.warning = `Invalid regex pattern for field '${fieldName}': ${regexPattern}`;
+          }
+        } else if (customRule.startsWith("range:")) {
+          const range = customRule.substring(6);
+          const [min, max] = range.split("-").map(Number);
+          if (value && typeof value === "number") {
+            if (value < min || value > max) {
+              result.error = `Field '${fieldName}' must be between ${min} and ${max}`;
+            }
+          }
+        }
+      } else {
+        result.warning = `Unknown validation rule '${rule}' for field '${fieldName}'`;
+      }
+  }
+
+  return result;
+}
+
+export const dataValidator: Integration = createIntegration({
+  id: "data_validator",
+  name: "Data Validator",
+  category: "logic",
+  description: "Validate data against schemas and rules",
+  icon: "shield-check",
+  version: "1.0.0",
+
+  schema: {
+    fields: [
+      {
+        key: "input_data",
+        type: "textarea",
+        label: "Data to Validate",
+        placeholder: "{{$node.api-1.data.response}}",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "validation_rules",
+        type: "textarea",
+        label: "Validation Rules (JSON)",
+        placeholder: '{"email": "email", "age": "number", "name": "required"}',
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string") {
+            return "Validation rules must be a JSON string";
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (typeof parsed !== "object" || parsed === null) {
+              return "Validation rules must be a JSON object";
+            }
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "stop_on_error",
+        type: "boolean",
+        label: "Stop Workflow on Validation Error",
+        required: false,
+      },
+      {
+        key: "custom_validators",
+        type: "textarea",
+        label: "Custom Validators (JSON)",
+        placeholder:
+          '{"phone": "regex:/^\\+?[1-9]\\d{1,14}$/", "age_range": "range:18-65"}',
+        required: false,
+        validation: (value: unknown) => {
+          if (!value) return null;
+          if (typeof value !== "string") {
+            return "Custom validators must be a JSON string";
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (typeof parsed !== "object" || parsed === null) {
+              return "Custom validators must be a JSON object";
+            }
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+    ],
+    required: ["input_data", "validation_rules"],
+  },
+
+  executor: {
+    async execute(config) {
+      const inputData = config.input_data as unknown;
+      const stopOnError = (config.stop_on_error as boolean) || false;
+
+      let validationRules = {};
+      let customValidators = {};
+
+      try {
+        validationRules = JSON.parse(config.validation_rules as string);
+      } catch (e) {
+        return {
+          success: false,
+          error: "Invalid validation rules JSON format",
+          data: {
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "logic", subtype: "data_validator" },
+        };
+      }
+
+      if (config.custom_validators) {
+        try {
+          customValidators = JSON.parse(config.custom_validators as string);
+        } catch (e) {
+          return {
+            success: false,
+            error: "Invalid custom validators JSON format",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "logic", subtype: "data_validator" },
+          };
+        }
+      }
+
+      const errors: string[] = [];
+      const warnings: string[] = [];
+      const validatedFields: string[] = [];
+
+      // Validate each field according to rules
+      for (const [fieldName, rule] of Object.entries(validationRules)) {
+        validatedFields.push(fieldName);
+        const fieldValue =
+          inputData && typeof inputData === "object" && fieldName in inputData
+            ? (inputData as Record<string, unknown>)[fieldName]
+            : undefined;
+
+        const validationResult = validateField(
+          fieldName,
+          fieldValue,
+          rule as string,
+          customValidators
+        );
+
+        if (validationResult.error) {
+          errors.push(validationResult.error);
+          if (stopOnError) break;
+        }
+
+        if (validationResult.warning) {
+          warnings.push(validationResult.warning);
+        }
+      }
+
+      const isValid = errors.length === 0;
+
+      return {
+        success: true,
+        data: {
+          is_valid: isValid,
+          errors,
+          warnings,
+          validated_fields: validatedFields,
+          total_fields: validatedFields.length,
+          stop_on_error: stopOnError,
+          timestamp: new Date().toISOString(),
+        },
+        metadata: { nodeType: "logic", subtype: "data_validator" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.input_data) {
+        errors.input_data = "Input data is required";
+      }
+
+      if (!config.validation_rules) {
+        errors.validation_rules = "Validation rules are required";
+      } else {
+        try {
+          const parsed = JSON.parse(config.validation_rules as string);
+          if (typeof parsed !== "object" || parsed === null) {
+            errors.validation_rules = "Validation rules must be a JSON object";
+          }
+        } catch (e) {
+          errors.validation_rules = "Invalid JSON format for validation rules";
+        }
+      }
+
+      if (config.custom_validators) {
+        try {
+          const parsed = JSON.parse(config.custom_validators as string);
+          if (typeof parsed !== "object" || parsed === null) {
+            errors.custom_validators =
+              "Custom validators must be a JSON object";
+          }
+        } catch (e) {
+          errors.custom_validators =
+            "Invalid JSON format for custom validators";
+        }
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/logic/switch-case.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const switchCase: Integration = createIntegration({
+  id: "switch_case",
+  name: "Switch",
+  category: "logic",
+  description: "Multi-path branching based on value matching",
+  icon: "git-branch",
+  version: "1.0.0",
+
+  schema: {
+    fields: [
+      {
+        key: "input_value",
+        type: "text",
+        label: "Input Value",
+        placeholder: "{{$node.trigger-1.data.status}}",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "cases",
+        type: "textarea",
+        label: "Cases (JSON)",
+        placeholder:
+          '{"active": "path1", "inactive": "path2", "pending": "path3"}',
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string") {
+            return "Cases must be a JSON string";
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (
+              typeof parsed !== "object" ||
+              parsed === null ||
+              Array.isArray(parsed)
+            ) {
+              return "Cases must be a JSON object";
+            }
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "default_case",
+        type: "text",
+        label: "Default Case",
+        placeholder: "default_path",
+        required: false,
+      },
+      {
+        key: "case_sensitive",
+        type: "boolean",
+        label: "Case Sensitive Matching",
+        required: false,
+      },
+    ],
+    required: ["input_value", "cases"],
+  },
+
+  executor: {
+    async execute(config) {
+      const inputValue = config.input_value as string;
+      const caseSensitive = (config.case_sensitive as boolean) || false;
+      let cases = {};
+
+      try {
+        cases = JSON.parse(config.cases as string);
+      } catch (e) {
+        return {
+          success: false,
+          error: "Invalid cases JSON format",
+          data: {
+            input_value: inputValue,
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "logic", subtype: "switch_case" },
+        };
+      }
+
+      // Find matching case
+      let matchedCase = (config.default_case as string) || "no_match";
+      const availableCases = Object.keys(cases);
+
+      for (const caseKey of availableCases) {
+        const compareValue = caseSensitive ? caseKey : caseKey.toLowerCase();
+        const compareInput = caseSensitive
+          ? inputValue
+          : inputValue.toLowerCase();
+
+        if (compareValue === compareInput) {
+          matchedCase = cases[caseKey as keyof typeof cases] as string;
+          break;
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          input_value: inputValue,
+          matched_case: matchedCase,
+          available_cases: availableCases,
+          case_sensitive: caseSensitive,
+          default_case: (config.default_case as string) || "no_match",
+          timestamp: new Date().toISOString(),
+        },
+        metadata: { nodeType: "logic", subtype: "switch_case" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.input_value) {
+        errors.input_value = "Input value is required";
+      }
+
+      if (!config.cases) {
+        errors.cases = "Cases configuration is required";
+      } else {
+        try {
+          const parsed = JSON.parse(config.cases as string);
+          if (
+            typeof parsed !== "object" ||
+            parsed === null ||
+            Array.isArray(parsed)
+          ) {
+            errors.cases = "Cases must be a JSON object";
+          }
+        } catch (e) {
+          errors.cases = "Invalid JSON format for cases";
+        }
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
       };
     },
   },
@@ -2262,6 +4245,1456 @@ export const branchCondition: Integration = createIntegration({
 
 ----- Content End -----
 
+===== File: lib/integrations/logic/aggregator.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+// Helper functions
+function filterData(
+  data: unknown[],
+  filterCondition: Record<string, unknown>
+): unknown[] {
+  return data.filter((item) => {
+    if (typeof item !== "object" || item === null) return false;
+
+    for (const [key, condition] of Object.entries(filterCondition)) {
+      const value = (item as Record<string, unknown>)[key];
+
+      if (typeof condition === "object" && condition !== null) {
+        // Handle operators like {"$gt": 0}
+        for (const [operator, operatorValue] of Object.entries(condition)) {
+          switch (operator) {
+            case "$gt":
+              if (typeof value !== "number" || value <= operatorValue)
+                return false;
+              break;
+            case "$gte":
+              if (typeof value !== "number" || value < operatorValue)
+                return false;
+              break;
+            case "$lt":
+              if (typeof value !== "number" || value >= operatorValue)
+                return false;
+              break;
+            case "$lte":
+              if (typeof value !== "number" || value > operatorValue)
+                return false;
+              break;
+            case "$eq":
+              if (value !== operatorValue) return false;
+              break;
+            case "$ne":
+              if (value === operatorValue) return false;
+              break;
+            case "$in":
+              if (
+                !Array.isArray(operatorValue) ||
+                !operatorValue.includes(value)
+              )
+                return false;
+              break;
+          }
+        }
+      } else {
+        // Simple equality check
+        if (value !== condition) return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+function getFieldValue(item: unknown, fieldPath: string): unknown {
+  if (!fieldPath) return item;
+
+  const keys = fieldPath.split(".");
+  let value: unknown = item;
+
+  for (const key of keys) {
+    if (value && typeof value === "object" && key in value) {
+      value = (value as Record<string, unknown>)[key];
+    } else {
+      return undefined;
+    }
+  }
+
+  return value;
+}
+
+function aggregateSum(data: unknown[], fieldPath: string): number {
+  return data.reduce<number>((sum, item) => {
+    const value = getFieldValue(item, fieldPath);
+    if (typeof value === "number" && !isNaN(value)) {
+      return sum + value;
+    }
+    return sum;
+  }, 0);
+}
+
+function aggregateAverage(data: unknown[], fieldPath: string): number {
+  const values = data
+    .map((item) => getFieldValue(item, fieldPath))
+    .filter((value) => typeof value === "number" && !isNaN(value)) as number[];
+
+  if (values.length === 0) return 0;
+  return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+function aggregateMin(data: unknown[], fieldPath: string): unknown {
+  const values = data
+    .map((item) => getFieldValue(item, fieldPath))
+    .filter((value) => value !== undefined && value !== null);
+
+  if (values.length === 0) return null;
+  return Math.min(...(values as number[]));
+}
+
+function aggregateMax(data: unknown[], fieldPath: string): unknown {
+  const values = data
+    .map((item) => getFieldValue(item, fieldPath))
+    .filter((value) => value !== undefined && value !== null);
+
+  if (values.length === 0) return null;
+  return Math.max(...(values as number[]));
+}
+
+function aggregateConcat(
+  data: unknown[],
+  fieldPath: string,
+  separator: string
+): string {
+  const values = data
+    .map((item) => getFieldValue(item, fieldPath))
+    .filter((value) => value !== undefined && value !== null)
+    .map((value) => String(value));
+
+  return values.join(separator);
+}
+
+function aggregateMerge(data: unknown[]): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+
+  for (const item of data) {
+    if (item && typeof item === "object") {
+      Object.assign(result, item);
+    }
+  }
+
+  return result;
+}
+
+function aggregateGroup(
+  data: unknown[],
+  groupByField: string,
+  valueField: string
+): Record<string, unknown> {
+  const groups: Record<string, unknown[]> = {};
+
+  for (const item of data) {
+    const groupKey = getFieldValue(item, groupByField);
+    if (groupKey !== undefined) {
+      const key = String(groupKey);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(getFieldValue(item, valueField));
+    }
+  }
+
+  return groups;
+}
+
+function aggregateUnique(data: unknown[], fieldPath: string): unknown[] {
+  const values = data
+    .map((item) => getFieldValue(item, fieldPath))
+    .filter((value) => value !== undefined && value !== null);
+
+  return Array.from(new Set(values));
+}
+
+export const aggregator: Integration = createIntegration({
+  id: "aggregator",
+  name: "Aggregator",
+  category: "logic",
+  description: "Collect and combine data from multiple sources",
+  icon: "layers",
+  version: "1.0.0",
+
+  schema: {
+    fields: [
+      {
+        key: "operation",
+        type: "select",
+        label: "Aggregation Operation",
+        required: true,
+        options: [
+          { label: "Sum", value: "sum" },
+          { label: "Average", value: "average" },
+          { label: "Count", value: "count" },
+          { label: "Min", value: "min" },
+          { label: "Max", value: "max" },
+          { label: "Concatenate", value: "concat" },
+          { label: "Merge Objects", value: "merge" },
+          { label: "Group By", value: "group" },
+          { label: "Unique Values", value: "unique" },
+        ],
+      },
+      {
+        key: "input_data",
+        type: "textarea",
+        label: "Input Data",
+        placeholder: "{{$node.iterator-1.data.results}}",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "field_path",
+        type: "text",
+        label: "Field to Aggregate (for array of objects)",
+        placeholder:
+          "value or price or {{$node.iterator-1.data.results.*.value}}",
+        supportExpressions: true,
+      },
+      {
+        key: "group_by_field",
+        type: "text",
+        label: "Group By Field (for group operation)",
+        placeholder: "category or status",
+        required: false,
+      },
+      {
+        key: "separator",
+        type: "text",
+        label: "Separator (for concatenate)",
+        placeholder: ", ",
+        required: false,
+      },
+      {
+        key: "filter_condition",
+        type: "textarea",
+        label: "Filter Condition (JSON)",
+        placeholder: '{"status": "active", "value": {"$gt": 0}}',
+        required: false,
+        validation: (value: unknown) => {
+          if (!value) return null;
+          if (typeof value !== "string") {
+            return "Filter condition must be a JSON string";
+          }
+          try {
+            JSON.parse(value);
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+    ],
+    required: ["operation", "input_data"],
+  },
+
+  executor: {
+    async execute(config) {
+      const operation = config.operation as string;
+      const inputData = config.input_data as unknown;
+      const fieldPath = config.field_path as string;
+      const groupByField = config.group_by_field as string;
+      const separator = (config.separator as string) || ", ";
+
+      let filterCondition = {};
+      if (config.filter_condition) {
+        try {
+          filterCondition = JSON.parse(config.filter_condition as string);
+        } catch (e) {
+          return {
+            success: false,
+            error: "Invalid filter condition JSON format",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "logic", subtype: "aggregator" },
+          };
+        }
+      }
+
+      // Ensure input is an array
+      if (!Array.isArray(inputData)) {
+        return {
+          success: false,
+          error: "Input data must be an array",
+          data: {
+            input_type: typeof inputData,
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "logic", subtype: "aggregator" },
+        };
+      }
+
+      // Apply filter if specified
+      let filteredData = inputData;
+      if (Object.keys(filterCondition).length > 0) {
+        filteredData = filterData(inputData, filterCondition);
+      }
+
+      let result: unknown;
+      const metadata: Record<string, unknown> = {
+        input_count: inputData.length,
+        filtered_count: filteredData.length,
+        operation,
+      };
+
+      switch (operation) {
+        case "sum":
+          result = aggregateSum(filteredData, fieldPath);
+          break;
+
+        case "average":
+          result = aggregateAverage(filteredData, fieldPath);
+          break;
+
+        case "count":
+          result = filteredData.length;
+          break;
+
+        case "min":
+          result = aggregateMin(filteredData, fieldPath);
+          break;
+
+        case "max":
+          result = aggregateMax(filteredData, fieldPath);
+          break;
+
+        case "concat":
+          result = aggregateConcat(filteredData, fieldPath, separator);
+          break;
+
+        case "merge":
+          result = aggregateMerge(filteredData);
+          break;
+
+        case "group":
+          result = aggregateGroup(filteredData, groupByField, fieldPath);
+          break;
+
+        case "unique":
+          result = aggregateUnique(filteredData, fieldPath);
+          break;
+
+        default:
+          return {
+            success: false,
+            error: `Unknown aggregation operation: ${operation}`,
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "logic", subtype: "aggregator" },
+          };
+      }
+
+      return {
+        success: true,
+        data: {
+          result,
+          ...metadata,
+          timestamp: new Date().toISOString(),
+        },
+        metadata: { nodeType: "logic", subtype: "aggregator" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.operation) {
+        errors.operation = "Aggregation operation is required";
+      }
+
+      if (!config.input_data) {
+        errors.input_data = "Input data is required";
+      }
+
+      if (config.operation === "group" && !config.group_by_field) {
+        errors.group_by_field =
+          "Group by field is required for group operation";
+      }
+
+      if (config.filter_condition) {
+        try {
+          JSON.parse(config.filter_condition as string);
+        } catch (e) {
+          errors.filter_condition = "Invalid JSON format for filter condition";
+        }
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/database-select.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+// Helper function
+function matchesWhereConditions(
+  row: Record<string, unknown>,
+  conditions: Record<string, unknown>
+): boolean {
+  for (const [field, condition] of Object.entries(conditions)) {
+    const value = row[field];
+
+    if (typeof condition === "object" && condition !== null) {
+      // Handle operators like {"$gte": 18}
+      for (const [operator, operatorValue] of Object.entries(condition)) {
+        switch (operator) {
+          case "$eq":
+            if (value !== operatorValue) return false;
+            break;
+          case "$ne":
+            if (value === operatorValue) return false;
+            break;
+          case "$gt":
+            if (typeof value !== "number" || value <= operatorValue)
+              return false;
+            break;
+          case "$gte":
+            if (typeof value !== "number" || value < operatorValue)
+              return false;
+            break;
+          case "$lt":
+            if (typeof value !== "number" || value >= operatorValue)
+              return false;
+            break;
+          case "$lte":
+            if (typeof value !== "number" || value > operatorValue)
+              return false;
+            break;
+          case "$in":
+            if (!Array.isArray(operatorValue) || !operatorValue.includes(value))
+              return false;
+            break;
+          case "$nin":
+            if (Array.isArray(operatorValue) && operatorValue.includes(value))
+              return false;
+            break;
+          case "$like":
+            if (
+              typeof value !== "string" ||
+              !value.includes(operatorValue as string)
+            )
+              return false;
+            break;
+        }
+      }
+    } else {
+      // Simple equality check
+      if (value !== condition) return false;
+    }
+  }
+
+  return true;
+}
+
+export const databaseSelect: Integration = createIntegration({
+  id: "database_select",
+  name: "Database Select",
+  category: "action",
+  description: "Query data from database tables",
+  icon: "database",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "connection_string",
+        type: "text",
+        label: "Database Connection String",
+        placeholder:
+          "postgresql://user:pass@host:5432/db or mysql://user:pass@host:3306/db",
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Connection string is required";
+          }
+          return null;
+        },
+      },
+      {
+        key: "query_type",
+        type: "select",
+        label: "Query Type",
+        required: true,
+        options: [
+          { label: "SQL Query", value: "sql" },
+          { label: "Table Select", value: "table" },
+        ],
+      },
+      {
+        key: "sql_query",
+        type: "textarea",
+        label: "SQL Query",
+        placeholder:
+          "SELECT * FROM users WHERE status = 'active' ORDER BY created_at DESC LIMIT 10",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "table_name",
+        type: "text",
+        label: "Table Name",
+        placeholder: "users or customers",
+        required: false,
+      },
+      {
+        key: "select_fields",
+        type: "text",
+        label: "Select Fields (comma-separated)",
+        placeholder: "id, name, email, created_at",
+        required: false,
+      },
+      {
+        key: "where_conditions",
+        type: "textarea",
+        label: "Where Conditions (JSON)",
+        placeholder: '{"status": "active", "age": {"$gte": 18}}',
+        required: false,
+        validation: (value: unknown) => {
+          if (!value) return null;
+          if (typeof value !== "string") {
+            return "Where conditions must be a JSON string";
+          }
+          try {
+            JSON.parse(value);
+            return null;
+          } catch {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "order_by",
+        type: "text",
+        label: "Order By",
+        placeholder: "created_at DESC, name ASC",
+        required: false,
+      },
+      {
+        key: "limit",
+        type: "number",
+        label: "Limit",
+        placeholder: "100",
+        required: false,
+      },
+      {
+        key: "offset",
+        type: "number",
+        label: "Offset",
+        placeholder: "0",
+        required: false,
+      },
+    ],
+    required: ["connection_string", "query_type"],
+  },
+
+  executor: {
+    async execute(config) {
+      // Simulate database operation delay
+      await new Promise((resolve) => setTimeout(resolve, 600));
+
+      const connectionString = config.connection_string as string;
+      const queryType = config.query_type as string;
+      const sqlQuery = config.sql_query as string;
+      const tableName = config.table_name as string;
+      const selectFields = config.select_fields as string;
+      const orderBy = config.order_by as string;
+      const limit = (config.limit as number) || 100;
+      const offset = (config.offset as number) || 0;
+
+      let whereConditions = {};
+      if (config.where_conditions) {
+        try {
+          whereConditions = JSON.parse(config.where_conditions as string);
+        } catch {
+          return {
+            success: false,
+            error: "Invalid JSON format for where conditions",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "action", subtype: "database_select" },
+          };
+        }
+      }
+
+      // Validate required fields based on query type
+      if (queryType === "sql" && !sqlQuery) {
+        return {
+          success: false,
+          error: "SQL query is required when using SQL query type",
+          data: {
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "action", subtype: "database_select" },
+        };
+      }
+
+      if (queryType === "table" && !tableName) {
+        return {
+          success: false,
+          error: "Table name is required when using table select type",
+          data: {
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "action", subtype: "database_select" },
+        };
+      }
+
+      // Mock database response
+      const mockData = [
+        {
+          id: 1,
+          name: "John Doe",
+          email: "john@example.com",
+          status: "active",
+          age: 30,
+          created_at: "2024-01-15T10:30:00Z",
+          updated_at: "2024-01-15T10:30:00Z",
+        },
+        {
+          id: 2,
+          name: "Jane Smith",
+          email: "jane@example.com",
+          status: "active",
+          age: 25,
+          created_at: "2024-01-14T15:45:00Z",
+          updated_at: "2024-01-14T15:45:00Z",
+        },
+        {
+          id: 3,
+          name: "Bob Johnson",
+          email: "bob@example.com",
+          status: "inactive",
+          age: 35,
+          created_at: "2024-01-13T09:20:00Z",
+          updated_at: "2024-01-13T09:20:00Z",
+        },
+      ];
+
+      // Apply where conditions filtering
+      let filteredData = mockData;
+      if (Object.keys(whereConditions).length > 0) {
+        filteredData = mockData.filter((row) => {
+          return matchesWhereConditions(row, whereConditions);
+        });
+      }
+
+      // Apply limit and offset
+      const paginatedData = filteredData.slice(offset, offset + limit);
+
+      // Filter fields if specified
+      let finalData: Record<string, unknown>[] = paginatedData;
+      if (selectFields && queryType === "table") {
+        const fieldsToSelect = selectFields
+          .split(",")
+          .map((field) => field.trim());
+        finalData = paginatedData.map((row) => {
+          const filteredRow: Record<string, unknown> = {};
+          for (const field of fieldsToSelect) {
+            if (field in row) {
+              filteredRow[field] = row[field as keyof typeof row];
+            }
+          }
+          return filteredRow;
+        });
+      }
+
+      return {
+        success: true,
+        data: {
+          queryType,
+          sqlQuery: queryType === "sql" ? sqlQuery : null,
+          tableName: queryType === "table" ? tableName : null,
+          selectFields: selectFields
+            ? selectFields.split(",").map((f) => f.trim())
+            : null,
+          whereConditions:
+            Object.keys(whereConditions).length > 0 ? whereConditions : null,
+          orderBy: orderBy || null,
+          limit,
+          offset,
+          results: finalData,
+          totalRows: filteredData.length,
+          returnedRows: finalData.length,
+          executionTime: "23ms",
+          timestamp: new Date().toISOString(),
+          connectionString: connectionString.replace(/\/\/.*@/, "//***:***@"), // Mask credentials
+        },
+        metadata: { nodeType: "action", subtype: "database_select" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.connection_string) {
+        errors.connection_string = "Connection string is required";
+      }
+
+      if (!config.query_type) {
+        errors.query_type = "Query type is required";
+      }
+
+      if (config.query_type === "sql" && !config.sql_query) {
+        errors.sql_query = "SQL query is required when using SQL query type";
+      }
+
+      if (config.query_type === "table" && !config.table_name) {
+        errors.table_name =
+          "Table name is required when using table select type";
+      }
+
+      if (config.where_conditions) {
+        try {
+          JSON.parse(config.where_conditions as string);
+        } catch {
+          errors.where_conditions = "Invalid JSON format for where conditions";
+        }
+      }
+
+      if (
+        config.limit &&
+        (typeof config.limit !== "number" || config.limit <= 0)
+      ) {
+        errors.limit = "Limit must be a positive number";
+      }
+
+      if (
+        config.offset &&
+        (typeof config.offset !== "number" || config.offset < 0)
+      ) {
+        errors.offset = "Offset must be a non-negative number";
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/teams-send-message.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const teamsSendMessage: Integration = createIntegration({
+  id: "teams_send_message",
+  name: "Send Teams Message",
+  category: "action",
+  description: "Post messages to Microsoft Teams channels",
+  icon: "microsoft",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "team_id",
+        type: "text",
+        label: "Team ID",
+        placeholder: "19:team@contoso.com",
+        required: true,
+      },
+      {
+        key: "channel_id",
+        type: "text",
+        label: "Channel ID",
+        placeholder: "19:channel@contoso.com",
+        required: true,
+      },
+      {
+        key: "message",
+        type: "textarea",
+        label: "Message",
+        placeholder: "Hello from the automation!",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "card_template",
+        type: "select",
+        label: "Card Template",
+        required: false,
+        options: [
+          { label: "None", value: "none" },
+          { label: "Hero Card", value: "hero" },
+          { label: "Thumbnail Card", value: "thumbnail" },
+          { label: "Adaptive Card", value: "adaptive" },
+        ],
+      },
+    ],
+    required: ["team_id", "channel_id", "message"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          messageId: "AAMkAGI1AAAt9AHjAAA=",
+          teamId: config.team_id as string,
+          channelId: config.channel_id as string,
+          message: config.message as string,
+          cardTemplate: config.card_template as string || "none",
+          timestamp,
+          webUrl: "https://teams.microsoft.com/l/message/19:channel@contoso.com/1234567890",
+          createdBy: "user@contoso.com",
+        },
+        metadata: { nodeType: "action", subtype: "teams_send_message" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/github-create-issue.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const githubCreateIssue: Integration = createIntegration({
+  id: "github_create_issue",
+  name: "GitHub Create Issue",
+  category: "action",
+  description: "Create issues in GitHub repositories",
+  icon: "github",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "owner",
+        type: "text",
+        label: "Repository Owner",
+        placeholder: "username",
+        required: true,
+      },
+      {
+        key: "repo",
+        type: "text",
+        label: "Repository Name",
+        placeholder: "repository-name",
+        required: true,
+      },
+      {
+        key: "title",
+        type: "text",
+        label: "Issue Title",
+        placeholder: "Bug: Application crashes on startup",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "body",
+        type: "textarea",
+        label: "Issue Description",
+        placeholder: "Describe the issue in detail...",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "labels",
+        type: "text",
+        label: "Labels (comma-separated)",
+        placeholder: "bug, high-priority, frontend",
+        required: false,
+      },
+      {
+        key: "assignees",
+        type: "text",
+        label: "Assignees (comma-separated)",
+        placeholder: "username1, username2",
+        required: false,
+      },
+      {
+        key: "milestone",
+        type: "number",
+        label: "Milestone ID",
+        placeholder: "123",
+        required: false,
+      },
+    ],
+    required: ["owner", "repo", "title"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          issueId: 12345,
+          number: 123,
+          title: config.title as string,
+          body: config.body as string || "",
+          labels: config.labels ? (config.labels as string).split(',').map(label => label.trim()) : [],
+          assignees: config.assignees ? (config.assignees as string).split(',').map(assignee => assignee.trim()) : [],
+          milestone: config.milestone as number || null,
+          state: "open",
+          locked: false,
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          closedAt: null,
+          author: "username",
+          repository: `${config.owner}/${config.repo}`,
+          url: `https://github.com/${config.owner}/${config.repo}/issues/${config.issue_id || 123}`,
+          htmlUrl: `https://github.com/${config.owner}/${config.repo}/issues/${config.issue_id || 123}`,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "github_create_issue" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/drive-upload-file.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const driveUploadFile: Integration = createIntegration({
+  id: "drive_upload_file",
+  name: "Google Drive Upload File",
+  category: "action",
+  description: "Upload files to Google Drive",
+  icon: "google",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "filename",
+        type: "text",
+        label: "Filename",
+        placeholder: "document.txt",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "content",
+        type: "textarea",
+        label: "File Content",
+        placeholder: "File content or base64 encoded data",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "mime_type",
+        type: "text",
+        label: "MIME Type",
+        placeholder: "text/plain",
+        required: false,
+      },
+      {
+        key: "parent_folder_id",
+        type: "text",
+        label: "Parent Folder ID",
+        placeholder: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+        required: false,
+      },
+      {
+        key: "description",
+        type: "textarea",
+        label: "Description",
+        placeholder: "File description",
+        required: false,
+      },
+      {
+        key: "permissions",
+        type: "select",
+        label: "Permissions",
+        required: false,
+        options: [
+          { label: "Private", value: "private" },
+          { label: "Anyone with link can view", value: "anyoneWithLink" },
+          { label: "Anyone with link can edit", value: "anyoneWithLinkEdit" },
+          { label: "Public", value: "public" },
+        ],
+      },
+    ],
+    required: ["filename", "content"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          fileId: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+          filename: config.filename as string,
+          mimeType: (config.mime_type as string) || "text/plain",
+          parentFolderId: (config.parent_folder_id as string) || "",
+          description: (config.description as string) || "",
+          permissions: (config.permissions as string) || "private",
+          size: (config.content as string).length,
+          createdTime: timestamp,
+          modifiedTime: timestamp,
+          webViewLink: `https://drive.google.com/file/d/${
+            config.file_id || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+          }/view`,
+          webContentLink: `https://drive.google.com/uc?id=${
+            config.file_id || "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms"
+          }`,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "drive_upload_file" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/sendgrid-send-email.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const sendgridSendEmail: Integration = createIntegration({
+  id: "sendgrid_send_email",
+  name: "SendGrid Send Email",
+  category: "action",
+  description: "Send emails via SendGrid",
+  icon: "sendgrid",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "to",
+        type: "email",
+        label: "To Email",
+        placeholder: "recipient@example.com",
+        required: true,
+      },
+      {
+        key: "from",
+        type: "email",
+        label: "From Email",
+        placeholder: "sender@yourdomain.com",
+        required: true,
+      },
+      {
+        key: "subject",
+        type: "text",
+        label: "Subject",
+        placeholder: "Email subject",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "content",
+        type: "textarea",
+        label: "Email Content",
+        placeholder: "Email body content...",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "content_type",
+        type: "select",
+        label: "Content Type",
+        required: false,
+        options: [
+          { label: "Text", value: "text/plain" },
+          { label: "HTML", value: "text/html" },
+        ],
+      },
+      {
+        key: "template_id",
+        type: "text",
+        label: "Template ID",
+        placeholder: "d-1234567890abcdef",
+        required: false,
+      },
+      {
+        key: "template_data",
+        type: "textarea",
+        label: "Template Data (JSON)",
+        placeholder: '{"name": "John", "company": "Acme Corp"}',
+        required: false,
+        supportExpressions: true,
+      },
+    ],
+    required: ["to", "from", "subject", "content"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          messageId: "abc123def456ghi789",
+          to: config.to as string,
+          from: config.from as string,
+          subject: config.subject as string,
+          content: config.content as string,
+          contentType: (config.content_type as string) || "text/plain",
+          templateId: (config.template_id as string) || "",
+          templateData: config.template_data
+            ? JSON.parse(config.template_data as string)
+            : {},
+          status: "delivered",
+          sentAt: timestamp,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "sendgrid_send_email" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/sms-send.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const smsSend: Integration = createIntegration({
+  id: "sms_send",
+  name: "Send SMS",
+  category: "action",
+  description: "Send SMS messages via Twilio",
+  icon: "message-circle",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "to_number",
+        type: "text",
+        label: "To Phone Number",
+        placeholder: "+1234567890",
+        required: true,
+      },
+      {
+        key: "from_number",
+        type: "text",
+        label: "From Phone Number",
+        placeholder: "+1234567890",
+        required: true,
+      },
+      {
+        key: "message",
+        type: "textarea",
+        label: "Message",
+        placeholder: "Your verification code is: 123456",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "media_urls",
+        type: "textarea",
+        label: "Media URLs (JSON array)",
+        placeholder: '["https://example.com/image.jpg"]',
+        required: false,
+        supportExpressions: true,
+      },
+    ],
+    required: ["to_number", "from_number", "message"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          messageId: "SM1234567890abcdef",
+          toNumber: config.to_number as string,
+          fromNumber: config.from_number as string,
+          message: config.message as string,
+          mediaUrls: config.media_urls
+            ? JSON.parse(config.media_urls as string)
+            : [],
+          status: "delivered",
+          sentAt: timestamp,
+          deliveredAt: timestamp,
+          price: 0.0075,
+          priceUnit: "USD",
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "sms_send" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/mailchimp-add-subscriber.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const mailchimpAddSubscriber: Integration = createIntegration({
+  id: "mailchimp_add_subscriber",
+  name: "Mailchimp Add Subscriber",
+  category: "action",
+  description: "Add subscribers to Mailchimp lists",
+  icon: "mailchimp",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "list_id",
+        type: "text",
+        label: "Audience ID",
+        placeholder: "a1b2c3d4e5",
+        required: true,
+      },
+      {
+        key: "email",
+        type: "email",
+        label: "Email Address",
+        placeholder: "subscriber@example.com",
+        required: true,
+      },
+      {
+        key: "first_name",
+        type: "text",
+        label: "First Name",
+        placeholder: "John",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "last_name",
+        type: "text",
+        label: "Last Name",
+        placeholder: "Doe",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "merge_fields",
+        type: "textarea",
+        label: "Merge Fields (JSON)",
+        placeholder: '{"PHONE": "+1-555-123-4567", "COMPANY": "Acme Corp"}',
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "tags",
+        type: "text",
+        label: "Tags (comma-separated)",
+        placeholder: "newsletter, vip, customer",
+        required: false,
+      },
+      {
+        key: "status",
+        type: "select",
+        label: "Subscription Status",
+        required: false,
+        options: [
+          { label: "Subscribed", value: "subscribed" },
+          { label: "Unsubscribed", value: "unsubscribed" },
+          { label: "Cleaned", value: "cleaned" },
+          { label: "Pending", value: "pending" },
+        ],
+      },
+    ],
+    required: ["list_id", "email"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          subscriberId: "a1b2c3d4e5f6g7h8i9j0",
+          listId: config.list_id as string,
+          email: config.email as string,
+          firstName: (config.first_name as string) || "",
+          lastName: (config.last_name as string) || "",
+          mergeFields: config.merge_fields
+            ? JSON.parse(config.merge_fields as string)
+            : {},
+          tags: config.tags
+            ? (config.tags as string).split(",").map((tag) => tag.trim())
+            : [],
+          status: (config.status as string) || "subscribed",
+          subscribedAt: timestamp,
+          lastChanged: timestamp,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "mailchimp_add_subscriber" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/twitter-post-tweet.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const twitterPostTweet: Integration = createIntegration({
+  id: "twitter_post_tweet",
+  name: "Twitter Post Tweet",
+  category: "action",
+  description: "Post tweets to Twitter/X",
+  icon: "twitter",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "text",
+        type: "textarea",
+        label: "Tweet Text",
+        placeholder: "What's happening?",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "reply_to",
+        type: "text",
+        label: "Reply To Tweet ID",
+        placeholder: "1234567890123456789",
+        required: false,
+      },
+      {
+        key: "media_ids",
+        type: "text",
+        label: "Media IDs (comma-separated)",
+        placeholder: "1234567890123456789, 9876543210987654321",
+        required: false,
+      },
+      {
+        key: "poll_options",
+        type: "textarea",
+        label: "Poll Options (JSON array)",
+        placeholder: '["Option 1", "Option 2", "Option 3", "Option 4"]',
+        required: false,
+      },
+      {
+        key: "poll_duration_minutes",
+        type: "number",
+        label: "Poll Duration (minutes)",
+        placeholder: "1440",
+        required: false,
+      },
+    ],
+    required: ["text"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          tweetId: "1234567890123456789",
+          text: config.text as string,
+          replyTo: config.reply_to as string || "",
+          mediaIds: config.media_ids ? (config.media_ids as string).split(',').map(id => id.trim()) : [],
+          pollOptions: config.poll_options ? JSON.parse(config.poll_options as string) : [],
+          pollDurationMinutes: config.poll_duration_minutes as number || 0,
+          createdAt: timestamp,
+          authorId: "9876543210987654321",
+          retweetCount: 0,
+          likeCount: 0,
+          replyCount: 0,
+          quoteCount: 0,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "twitter_post_tweet" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
 ===== File: lib/integrations/actions/slack-send-message.ts =====
 Type: .ts
 ----- Content Start -----
@@ -2273,7 +5706,7 @@ export const slackSendMessage: Integration = createIntegration({
   name: "Send Slack Message",
   category: "action",
   description: "Send a message to a Slack channel",
-  icon: "message-square",
+  icon: "slack",
   version: "1.0.0",
 
   auth: {
@@ -2349,6 +5782,478 @@ export const slackSendMessage: Integration = createIntegration({
 }); 
 ----- Content End -----
 
+===== File: lib/integrations/actions/postgres-insert.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const postgresInsert: Integration = createIntegration({
+  id: "postgres_insert",
+  name: "PostgreSQL Insert",
+  category: "action",
+  description: "Insert records into PostgreSQL database",
+  icon: "postgresql",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "connection_string",
+        type: "text",
+        label: "Connection String",
+        placeholder: "postgresql://user:pass@host:5432/db",
+        required: true,
+      },
+      {
+        key: "table",
+        type: "text",
+        label: "Table Name",
+        placeholder: "users",
+        required: true,
+      },
+      {
+        key: "data",
+        type: "textarea",
+        label: "Data (JSON)",
+        placeholder: '{"name": "John", "email": "john@example.com"}',
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "return_fields",
+        type: "text",
+        label: "Return Fields",
+        placeholder: "id, created_at",
+        required: false,
+      },
+    ],
+    required: ["connection_string", "table", "data"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          table: config.table as string,
+          insertedRows: 1,
+          returnedData: {
+            id: 12345,
+            name: "John Doe",
+            email: "john@example.com",
+            created_at: timestamp,
+          },
+          executionTime: "45ms",
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "postgres_insert" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/s3-upload-file.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const s3UploadFile: Integration = createIntegration({
+  id: "s3_upload_file",
+  name: "AWS S3 Upload File",
+  category: "action",
+  description: "Upload files to AWS S3 bucket",
+  icon: "aws",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "bucket",
+        type: "text",
+        label: "Bucket Name",
+        placeholder: "my-upload-bucket",
+        required: true,
+      },
+      {
+        key: "key",
+        type: "text",
+        label: "Object Key",
+        placeholder: "uploads/file.txt",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "file_content",
+        type: "textarea",
+        label: "File Content",
+        placeholder: "File content or base64 encoded data",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "content_type",
+        type: "text",
+        label: "Content Type",
+        placeholder: "text/plain",
+        required: false,
+      },
+      {
+        key: "metadata",
+        type: "textarea",
+        label: "Metadata (JSON)",
+        placeholder: '{"author": "John Doe", "version": "1.0"}',
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "acl",
+        type: "select",
+        label: "Access Control",
+        required: false,
+        options: [
+          { label: "Private", value: "private" },
+          { label: "Public Read", value: "public-read" },
+          { label: "Public Read Write", value: "public-read-write" },
+          { label: "Authenticated Read", value: "authenticated-read" },
+        ],
+      },
+    ],
+    required: ["bucket", "key", "file_content"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          bucket: config.bucket as string,
+          key: config.key as string,
+          etag: '"abc123def456ghi789"',
+          versionId: "null",
+          location: `https://${config.bucket}.s3.amazonaws.com/${config.key}`,
+          contentType: config.content_type as string || "application/octet-stream",
+          metadata: config.metadata ? JSON.parse(config.metadata as string) : {},
+          acl: config.acl as string || "private",
+          size: (config.file_content as string).length,
+          lastModified: timestamp,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "s3_upload_file" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/telegram-send-message.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const telegramSendMessage: Integration = createIntegration({
+  id: "telegram_send_message",
+  name: "Send Telegram Message",
+  category: "action",
+  description: "Send messages via Telegram Bot",
+  icon: "telegram",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "chat_id",
+        type: "text",
+        label: "Chat ID",
+        placeholder: "123456789 or @channel_name",
+        required: true,
+      },
+      {
+        key: "message",
+        type: "textarea",
+        label: "Message",
+        placeholder: "Hello from the automation!",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "parse_mode",
+        type: "select",
+        label: "Parse Mode",
+        required: false,
+        options: [
+          { label: "Plain Text", value: "text" },
+          { label: "HTML", value: "HTML" },
+          { label: "Markdown", value: "MarkdownV2" },
+        ],
+      },
+      {
+        key: "disable_web_page_preview",
+        type: "boolean",
+        label: "Disable Web Page Preview",
+        required: false,
+      },
+      {
+        key: "disable_notification",
+        type: "boolean",
+        label: "Silent Message",
+        required: false,
+      },
+    ],
+    required: ["chat_id", "message"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          messageId: 12345,
+          chatId: config.chat_id as string,
+          message: config.message as string,
+          parseMode: (config.parse_mode as string) || "text",
+          disableWebPagePreview:
+            (config.disable_web_page_preview as boolean) || false,
+          disableNotification:
+            (config.disable_notification as boolean) || false,
+          timestamp,
+          from: {
+            id: 987654321,
+            isBot: true,
+            firstName: "WorkflowBot",
+            username: "workflow_bot",
+          },
+          chat: {
+            id: 123456789,
+            type: "private",
+            title: "Test Chat",
+          },
+        },
+        metadata: { nodeType: "action", subtype: "telegram_send_message" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/paypal-send-payment.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const paypalSendPayment: Integration = createIntegration({
+  id: "paypal_send_payment",
+  name: "PayPal Send Payment",
+  category: "action",
+  description: "Send payments via PayPal",
+  icon: "paypal",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "recipient_email",
+        type: "email",
+        label: "Recipient Email",
+        placeholder: "recipient@example.com",
+        required: true,
+      },
+      {
+        key: "amount",
+        type: "number",
+        label: "Amount",
+        placeholder: "25.00",
+        required: true,
+      },
+      {
+        key: "currency",
+        type: "select",
+        label: "Currency",
+        required: true,
+        options: [
+          { label: "USD", value: "USD" },
+          { label: "EUR", value: "EUR" },
+          { label: "GBP", value: "GBP" },
+          { label: "CAD", value: "CAD" },
+          { label: "AUD", value: "AUD" },
+        ],
+      },
+      {
+        key: "note",
+        type: "textarea",
+        label: "Note",
+        placeholder: "Payment for services rendered",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "subject",
+        type: "text",
+        label: "Subject",
+        placeholder: "Payment from WorkflowBot",
+        required: false,
+      },
+    ],
+    required: ["recipient_email", "amount", "currency"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1800));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          paymentId: "PAY-1234567890ABCDEF",
+          recipientEmail: config.recipient_email as string,
+          amount: config.amount as number,
+          currency: config.currency as string,
+          status: "COMPLETED",
+          note: (config.note as string) || "",
+          subject: (config.subject as string) || "Payment from WorkflowBot",
+          timestamp,
+          fee: (config.amount as number) * 0.029 + 0.3,
+          netAmount:
+            (config.amount as number) -
+            ((config.amount as number) * 0.029 + 0.3),
+        },
+        metadata: { nodeType: "action", subtype: "paypal_send_payment" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/zoom-create-meeting.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const zoomCreateMeeting: Integration = createIntegration({
+  id: "zoom_create_meeting",
+  name: "Zoom Create Meeting",
+  category: "action",
+  description: "Schedule Zoom meetings",
+  icon: "zoom",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "topic",
+        type: "text",
+        label: "Meeting Topic",
+        placeholder: "Team Standup",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "start_time",
+        type: "text",
+        label: "Start Time",
+        placeholder: "2024-12-01T10:00:00Z",
+        required: true,
+      },
+      {
+        key: "duration",
+        type: "number",
+        label: "Duration (minutes)",
+        placeholder: "30",
+        required: false,
+      },
+      {
+        key: "password",
+        type: "text",
+        label: "Meeting Password",
+        placeholder: "123456",
+        required: false,
+      },
+      {
+        key: "settings",
+        type: "textarea",
+        label: "Settings (JSON)",
+        placeholder:
+          '{"host_video": true, "participant_video": true, "join_before_host": true}',
+        required: false,
+      },
+    ],
+    required: ["topic", "start_time"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          meetingId: 123456789,
+          topic: config.topic as string,
+          startTime: config.start_time as string,
+          duration: (config.duration as number) || 30,
+          password: (config.password as string) || "",
+          settings: config.settings
+            ? JSON.parse(config.settings as string)
+            : {},
+          joinUrl: "https://zoom.us/j/123456789?pwd=abc123def456",
+          startUrl: "https://zoom.us/s/123456789?zak=abc123def456",
+          createdAt: timestamp,
+          hostEmail: "host@example.com",
+          status: "waiting",
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "zoom_create_meeting" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
 ===== File: lib/integrations/actions/delay.ts =====
 Type: .ts
 ----- Content Start -----
@@ -2417,11 +6322,739 @@ export const delay: Integration = createIntegration({
 }); 
 ----- Content End -----
 
+===== File: lib/integrations/actions/airtable-create-record.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const airtableCreateRecord: Integration = createIntegration({
+  id: "airtable_create_record",
+  name: "Airtable Create Record",
+  category: "action",
+  description: "Create records in Airtable base",
+  icon: "airtable",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "base_id",
+        type: "text",
+        label: "Base ID",
+        placeholder: "appXXXXXXXXXXXXXX",
+        required: true,
+      },
+      {
+        key: "table_id",
+        type: "text",
+        label: "Table ID",
+        placeholder: "tblXXXXXXXXXXXXXX",
+        required: true,
+      },
+      {
+        key: "fields",
+        type: "textarea",
+        label: "Fields (JSON)",
+        placeholder: '{"Name": "John Doe", "Email": "john@example.com", "Status": "Active"}',
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "typecast",
+        type: "boolean",
+        label: "Enable Type Casting",
+        required: false,
+      },
+    ],
+    required: ["base_id", "table_id", "fields"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          recordId: "recXXXXXXXXXXXXXX",
+          baseId: config.base_id as string,
+          tableId: config.table_id as string,
+          fields: JSON.parse(config.fields as string),
+          createdTime: timestamp,
+          typecast: config.typecast as boolean || false,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "airtable_create_record" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/database-insert.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const databaseInsert: Integration = createIntegration({
+  id: "database_insert",
+  name: "Database Insert",
+  category: "action",
+  description: "Insert data into database tables",
+  icon: "database",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "connection_string",
+        type: "text",
+        label: "Database Connection String",
+        placeholder: "postgresql://user:pass@host:5432/db or mysql://user:pass@host:3306/db",
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Connection string is required";
+          }
+          return null;
+        },
+      },
+      {
+        key: "table_name",
+        type: "text",
+        label: "Table Name",
+        placeholder: "users or customers",
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Table name is required";
+          }
+          return null;
+        },
+      },
+      {
+        key: "data",
+        type: "textarea",
+        label: "Data to Insert (JSON)",
+        placeholder: '{"name": "John Doe", "email": "john@example.com", "age": 30}',
+        required: true,
+        supportExpressions: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Data is required";
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+              return "Data must be a JSON object";
+            }
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "return_fields",
+        type: "text",
+        label: "Return Fields (comma-separated)",
+        placeholder: "id, created_at, updated_at",
+        required: false,
+      },
+      {
+        key: "on_conflict",
+        type: "select",
+        label: "On Conflict Action",
+        required: false,
+        options: [
+          { label: "Do Nothing", value: "do_nothing" },
+          { label: "Update", value: "update" },
+          { label: "Error", value: "error" },
+        ],
+      },
+      {
+        key: "conflict_fields",
+        type: "text",
+        label: "Conflict Fields (comma-separated)",
+        placeholder: "email, username",
+        required: false,
+      },
+      {
+        key: "batch_mode",
+        type: "boolean",
+        label: "Batch Insert Mode",
+        required: false,
+      },
+    ],
+    required: ["connection_string", "table_name", "data"],
+  },
+
+  executor: {
+    async execute(config) {
+      // Simulate database operation delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      
+      const connectionString = config.connection_string as string;
+      const tableName = config.table_name as string;
+      const returnFields = config.return_fields as string;
+      const onConflict = config.on_conflict as string;
+      const conflictFields = config.conflict_fields as string;
+      const batchMode = config.batch_mode as boolean || false;
+      
+      let data: Record<string, unknown> = {};
+      try {
+        data = JSON.parse(config.data as string);
+        if (typeof data !== "object" || data === null || Array.isArray(data)) {
+          return {
+            success: false,
+            error: "Data must be a JSON object",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "action", subtype: "database_insert" },
+          };
+        }
+      } catch (e) {
+        return {
+          success: false,
+          error: "Invalid JSON format for data",
+          data: {
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "action", subtype: "database_insert" },
+        };
+      }
+
+      // Mock database response
+      const mockId = Math.floor(Math.random() * 1000000) + 1;
+      const timestamp = new Date().toISOString();
+      
+      const returnedData: Record<string, unknown> = {
+        id: mockId,
+        ...data,
+        created_at: timestamp,
+        updated_at: timestamp,
+      };
+
+      // Filter returned data based on return_fields
+      let finalReturnedData = returnedData;
+      if (returnFields) {
+        const fieldsToReturn = returnFields.split(",").map(field => field.trim());
+        finalReturnedData = Object.fromEntries(
+          Object.entries(returnedData).filter(([key]) => 
+            fieldsToReturn.includes(key)
+          )
+        );
+      }
+
+      return {
+        success: true,
+        data: {
+          table: tableName,
+          insertedRows: 1,
+          returnedData: finalReturnedData,
+          allReturnedData: returnedData,
+          returnFields: returnFields ? returnFields.split(",").map(f => f.trim()) : null,
+          onConflict: onConflict || null,
+          conflictFields: conflictFields ? conflictFields.split(",").map(f => f.trim()) : null,
+          batchMode,
+          executionTime: "45ms",
+          timestamp,
+          connectionString: connectionString.replace(/\/\/.*@/, "//***:***@"), // Mask credentials
+        },
+        metadata: { nodeType: "action", subtype: "database_insert" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.connection_string) {
+        errors.connection_string = "Connection string is required";
+      }
+
+      if (!config.table_name) {
+        errors.table_name = "Table name is required";
+      }
+
+      if (!config.data) {
+        errors.data = "Data is required";
+      } else {
+        try {
+          const parsed = JSON.parse(config.data as string);
+          if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+            errors.data = "Data must be a JSON object";
+          }
+        } catch (e) {
+          errors.data = "Invalid JSON format for data";
+        }
+      }
+
+      if (config.on_conflict === "update" && !config.conflict_fields) {
+        errors.conflict_fields = "Conflict fields are required when using update conflict resolution";
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/hubspot-create-contact.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const hubspotCreateContact: Integration = createIntegration({
+  id: "hubspot_create_contact",
+  name: "HubSpot Create Contact",
+  category: "action",
+  description: "Create contacts in HubSpot CRM",
+  icon: "hubspot",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "email",
+        type: "email",
+        label: "Email",
+        placeholder: "contact@example.com",
+        required: true,
+      },
+      {
+        key: "firstname",
+        type: "text",
+        label: "First Name",
+        placeholder: "John",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "lastname",
+        type: "text",
+        label: "Last Name",
+        placeholder: "Doe",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "phone",
+        type: "text",
+        label: "Phone",
+        placeholder: "+1-555-123-4567",
+        required: false,
+      },
+      {
+        key: "company",
+        type: "text",
+        label: "Company",
+        placeholder: "Acme Corp",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "jobtitle",
+        type: "text",
+        label: "Job Title",
+        placeholder: "Software Engineer",
+        required: false,
+      },
+      {
+        key: "lifecyclestage",
+        type: "select",
+        label: "Lifecycle Stage",
+        required: false,
+        options: [
+          { label: "Lead", value: "lead" },
+          {
+            label: "Marketing Qualified Lead",
+            value: "marketingqualifiedlead",
+          },
+          { label: "Sales Qualified Lead", value: "salesqualifiedlead" },
+          { label: "Opportunity", value: "opportunity" },
+          { label: "Customer", value: "customer" },
+          { label: "Evangelist", value: "evangelist" },
+          { label: "Other", value: "other" },
+        ],
+      },
+    ],
+    required: ["email"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          contactId: 12345,
+          email: config.email as string,
+          firstname: (config.firstname as string) || "",
+          lastname: (config.lastname as string) || "",
+          phone: (config.phone as string) || "",
+          company: (config.company as string) || "",
+          jobtitle: (config.jobtitle as string) || "",
+          lifecyclestage: (config.lifecyclestage as string) || "lead",
+          createdAt: timestamp,
+          updatedAt: timestamp,
+          properties: {
+            email: config.email as string,
+            firstname: (config.firstname as string) || "",
+            lastname: (config.lastname as string) || "",
+            phone: (config.phone as string) || "",
+            company: (config.company as string) || "",
+            jobtitle: (config.jobtitle as string) || "",
+            lifecyclestage: (config.lifecyclestage as string) || "lead",
+          },
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "hubspot_create_contact" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/redis-set.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const redisSet: Integration = createIntegration({
+  id: "redis_set",
+  name: "Redis Set",
+  category: "action",
+  description: "Set key-value pairs in Redis",
+  icon: "redis",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "host",
+        type: "text",
+        label: "Redis Host",
+        placeholder: "localhost",
+        required: true,
+      },
+      {
+        key: "port",
+        type: "number",
+        label: "Redis Port",
+        placeholder: "6379",
+        required: false,
+      },
+      {
+        key: "key",
+        type: "text",
+        label: "Key",
+        placeholder: "user:123:profile",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "value",
+        type: "textarea",
+        label: "Value",
+        placeholder: "Value to store",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "ttl",
+        type: "number",
+        label: "TTL (seconds)",
+        placeholder: "3600",
+        required: false,
+      },
+      {
+        key: "expire_mode",
+        type: "select",
+        label: "Expire Mode",
+        required: false,
+        options: [
+          { label: "EX (seconds)", value: "EX" },
+          { label: "PX (milliseconds)", value: "PX" },
+          { label: "EXAT (timestamp)", value: "EXAT" },
+          { label: "PXAT (timestamp ms)", value: "PXAT" },
+        ],
+      },
+    ],
+    required: ["host", "key", "value"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          host: config.host as string,
+          port: (config.port as number) || 6379,
+          key: config.key as string,
+          value: config.value as string,
+          ttl: (config.ttl as number) || null,
+          expireMode: (config.expire_mode as string) || "EX",
+          result: "OK",
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "redis_set" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/cloudinary-upload-image.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const cloudinaryUploadImage: Integration = createIntegration({
+  id: "cloudinary_upload_image",
+  name: "Cloudinary Upload Image",
+  category: "action",
+  description: "Upload and transform images with Cloudinary",
+  icon: "cloudinary",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "file",
+        type: "textarea",
+        label: "File (Base64 or URL)",
+        placeholder: "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQ...",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "folder",
+        type: "text",
+        label: "Folder",
+        placeholder: "my-app/uploads",
+        required: false,
+      },
+      {
+        key: "public_id",
+        type: "text",
+        label: "Public ID",
+        placeholder: "my-image",
+        required: false,
+      },
+      {
+        key: "transformations",
+        type: "textarea",
+        label: "Transformations (JSON)",
+        placeholder: '{"width": 800, "height": 600, "crop": "fill", "quality": "auto"}',
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "tags",
+        type: "text",
+        label: "Tags (comma-separated)",
+        placeholder: "profile, avatar, user",
+        required: false,
+      },
+    ],
+    required: ["file"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          publicId: config.public_id as string || "my-app/image_123",
+          url: "https://res.cloudinary.com/demo/image/upload/v1234567890/my-app/image_123.jpg",
+          secureUrl: "https://res.cloudinary.com/demo/image/upload/v1234567890/my-app/image_123.jpg",
+          width: 800,
+          height: 600,
+          format: "jpg",
+          resourceType: "image",
+          bytes: 12345,
+          folder: config.folder as string || "",
+          tags: config.tags ? (config.tags as string).split(',').map(tag => tag.trim()) : [],
+          transformations: config.transformations ? JSON.parse(config.transformations as string) : {},
+          createdAt: timestamp,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "cloudinary_upload_image" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/jira-create-issue.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const jiraCreateIssue: Integration = createIntegration({
+  id: "jira_create_issue",
+  name: "Jira Create Issue",
+  category: "action",
+  description: "Create issues in Jira",
+  icon: "jira",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "project_key",
+        type: "text",
+        label: "Project Key",
+        placeholder: "PROJ",
+        required: true,
+      },
+      {
+        key: "issue_type",
+        type: "select",
+        label: "Issue Type",
+        required: true,
+        options: [
+          { label: "Bug", value: "Bug" },
+          { label: "Story", value: "Story" },
+          { label: "Task", value: "Task" },
+          { label: "Epic", value: "Epic" },
+          { label: "Subtask", value: "Subtask" },
+        ],
+      },
+      {
+        key: "summary",
+        type: "text",
+        label: "Summary",
+        placeholder: "Brief description of the issue",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "description",
+        type: "textarea",
+        label: "Description",
+        placeholder: "Detailed description of the issue...",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "priority",
+        type: "select",
+        label: "Priority",
+        required: false,
+        options: [
+          { label: "Highest", value: "Highest" },
+          { label: "High", value: "High" },
+          { label: "Medium", value: "Medium" },
+          { label: "Low", value: "Low" },
+          { label: "Lowest", value: "Lowest" },
+        ],
+      },
+      {
+        key: "assignee",
+        type: "text",
+        label: "Assignee",
+        placeholder: "username",
+        required: false,
+      },
+      {
+        key: "labels",
+        type: "text",
+        label: "Labels (comma-separated)",
+        placeholder: "bug, frontend, high-priority",
+        required: false,
+      },
+    ],
+    required: ["project_key", "issue_type", "summary"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          issueId: "PROJ-123",
+          key: "PROJ-123",
+          projectKey: config.project_key as string,
+          issueType: config.issue_type as string,
+          summary: config.summary as string,
+          description: config.description as string || "",
+          priority: config.priority as string || "Medium",
+          assignee: config.assignee as string || "",
+          labels: config.labels ? (config.labels as string).split(',').map(label => label.trim()) : [],
+          status: "To Do",
+          created: timestamp,
+          updated: timestamp,
+          reporter: "current-user",
+          url: `https://company.atlassian.net/browse/${config.project_key}-123`,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "jira_create_issue" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
 ===== File: lib/integrations/actions/api-request.ts =====
 Type: .ts
 ----- Content Start -----
-import { createIntegration } from '../utils';
-import type { Integration } from '../types';
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
 
 export const apiRequest: Integration = createIntegration({
   id: "api_request",
@@ -2498,7 +7131,300 @@ export const apiRequest: Integration = createIntegration({
       };
     },
   },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/notion-create-page.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const notionCreatePage: Integration = createIntegration({
+  id: "notion_create_page",
+  name: "Notion Create Page",
+  category: "action",
+  description: "Create pages in Notion",
+  icon: "notion",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "parent_id",
+        type: "text",
+        label: "Parent Page/Database ID",
+        placeholder: "12345678-1234-1234-1234-123456789abc",
+        required: true,
+      },
+      {
+        key: "title",
+        type: "text",
+        label: "Page Title",
+        placeholder: "New Page Title",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "content",
+        type: "textarea",
+        label: "Page Content",
+        placeholder: "Page content in Notion format...",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "properties",
+        type: "textarea",
+        label: "Properties (JSON)",
+        placeholder:
+          '{"Status": {"select": {"name": "In Progress"}}, "Priority": {"select": {"name": "High"}}}',
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "icon",
+        type: "text",
+        label: "Page Icon",
+        placeholder: "🚀",
+        required: false,
+      },
+      {
+        key: "cover",
+        type: "url",
+        label: "Cover Image URL",
+        placeholder: "https://example.com/image.jpg",
+        required: false,
+      },
+    ],
+    required: ["parent_id", "title"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          pageId: "12345678-1234-1234-1234-123456789abc",
+          parentId: config.parent_id as string,
+          title: config.title as string,
+          content: (config.content as string) || "",
+          properties: config.properties
+            ? JSON.parse(config.properties as string)
+            : {},
+          icon: (config.icon as string) || "",
+          cover: (config.cover as string) || "",
+          createdTime: timestamp,
+          lastEditedTime: timestamp,
+          url: `https://notion.so/${
+            config.page_id || "12345678-1234-1234-1234-123456789abc"
+          }`,
+          archived: false,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "notion_create_page" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/discord-send-message.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const discordSendMessage: Integration = createIntegration({
+  id: "discord_send_message",
+  name: "Send Discord Message",
+  category: "action",
+  description: "Send messages to Discord channels",
+  icon: "discord",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "channel_id",
+        type: "text",
+        label: "Channel ID",
+        placeholder: "123456789012345678",
+        required: true,
+      },
+      {
+        key: "message",
+        type: "textarea",
+        label: "Message",
+        placeholder: "Hello from the automation!",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "username",
+        type: "text",
+        label: "Bot Username",
+        placeholder: "WorkflowBot",
+        required: false,
+      },
+      {
+        key: "avatar_url",
+        type: "url",
+        label: "Avatar URL",
+        placeholder: "https://example.com/avatar.png",
+        required: false,
+      },
+      {
+        key: "tts",
+        type: "boolean",
+        label: "Text-to-Speech",
+        required: false,
+      },
+    ],
+    required: ["channel_id", "message"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          messageId: "1234567890123456789",
+          channelId: config.channel_id as string,
+          message: config.message as string,
+          username: config.username as string || "WorkflowBot",
+          tts: config.tts as boolean || false,
+          timestamp,
+          guildId: "987654321098765432",
+          authorId: "111222333444555666",
+        },
+        metadata: { nodeType: "action", subtype: "discord_send_message" },
+      };
+    },
+  },
 }); 
+----- Content End -----
+
+===== File: lib/integrations/actions/asana-create-task.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const asanaCreateTask: Integration = createIntegration({
+  id: "asana_create_task",
+  name: "Asana Create Task",
+  category: "action",
+  description: "Create tasks in Asana",
+  icon: "asana",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "name",
+        type: "text",
+        label: "Task Name",
+        placeholder: "Complete project documentation",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "notes",
+        type: "textarea",
+        label: "Description",
+        placeholder: "Detailed description of the task...",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "project_id",
+        type: "text",
+        label: "Project ID",
+        placeholder: "123456789",
+        required: false,
+      },
+      {
+        key: "assignee_id",
+        type: "text",
+        label: "Assignee ID",
+        placeholder: "987654321",
+        required: false,
+      },
+      {
+        key: "due_date",
+        type: "text",
+        label: "Due Date",
+        placeholder: "2024-12-31",
+        required: false,
+      },
+      {
+        key: "priority",
+        type: "select",
+        label: "Priority",
+        required: false,
+        options: [
+          { label: "Low", value: "low" },
+          { label: "Medium", value: "medium" },
+          { label: "High", value: "high" },
+        ],
+      },
+    ],
+    required: ["name"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          taskId: "123456789",
+          name: config.name as string,
+          notes: (config.notes as string) || "",
+          projectId: (config.project_id as string) || "",
+          assigneeId: (config.assignee_id as string) || "",
+          dueDate: (config.due_date as string) || "",
+          priority: (config.priority as string) || "medium",
+          status: "incomplete",
+          createdAt: timestamp,
+          modifiedAt: timestamp,
+          permalinkUrl: `https://app.asana.com/0/${
+            config.project_id || "123456789"
+          }/${config.task_id || "123456789"}`,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "asana_create_task" },
+      };
+    },
+  },
+});
+
 ----- Content End -----
 
 ===== File: lib/integrations/actions/ai.ts =====
@@ -2747,6 +7673,287 @@ export const aiIntegration: Integration = createIntegration({
 
 ----- Content End -----
 
+===== File: lib/integrations/actions/linkedin-create-post.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const linkedinCreatePost: Integration = createIntegration({
+  id: "linkedin_create_post",
+  name: "LinkedIn Create Post",
+  category: "action",
+  description: "Create posts on LinkedIn",
+  icon: "linkedin",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "content",
+        type: "textarea",
+        label: "Post Content",
+        placeholder: "Share your thoughts...",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "visibility",
+        type: "select",
+        label: "Visibility",
+        required: false,
+        options: [
+          { label: "Public", value: "PUBLIC" },
+          { label: "Connections", value: "CONNECTIONS" },
+          { label: "Group", value: "GROUP" },
+        ],
+      },
+      {
+        key: "group_id",
+        type: "text",
+        label: "Group ID (if posting to group)",
+        placeholder: "123456789",
+        required: false,
+      },
+      {
+        key: "media_urls",
+        type: "textarea",
+        label: "Media URLs (JSON array)",
+        placeholder: '["https://example.com/image1.jpg", "https://example.com/image2.jpg"]',
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "article_url",
+        type: "url",
+        label: "Article URL",
+        placeholder: "https://example.com/article",
+        required: false,
+      },
+    ],
+    required: ["content"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          postId: "urn:li:activity:1234567890123456789",
+          content: config.content as string,
+          visibility: config.visibility as string || "PUBLIC",
+          groupId: config.group_id as string || "",
+          mediaUrls: config.media_urls ? JSON.parse(config.media_urls as string) : [],
+          articleUrl: config.article_url as string || "",
+          createdAt: timestamp,
+          authorId: "urn:li:person:123456789",
+          likeCount: 0,
+          commentCount: 0,
+          shareCount: 0,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "linkedin_create_post" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/stripe-create-payment.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const stripeCreatePayment: Integration = createIntegration({
+  id: "stripe_create_payment",
+  name: "Stripe Create Payment",
+  category: "action",
+  description: "Process payments with Stripe",
+  icon: "stripe",
+  version: "1.0.0",
+
+  auth: {
+    type: "api_key",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "amount",
+        type: "number",
+        label: "Amount (in cents)",
+        placeholder: "2000",
+        required: true,
+      },
+      {
+        key: "currency",
+        type: "select",
+        label: "Currency",
+        required: true,
+        options: [
+          { label: "USD", value: "usd" },
+          { label: "EUR", value: "eur" },
+          { label: "GBP", value: "gbp" },
+          { label: "CAD", value: "cad" },
+          { label: "AUD", value: "aud" },
+        ],
+      },
+      {
+        key: "payment_method",
+        type: "text",
+        label: "Payment Method ID",
+        placeholder: "pm_1234567890abcdef",
+        required: true,
+      },
+      {
+        key: "customer_id",
+        type: "text",
+        label: "Customer ID",
+        placeholder: "cus_1234567890abcdef",
+        required: false,
+      },
+      {
+        key: "description",
+        type: "text",
+        label: "Description",
+        placeholder: "Payment for services",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "metadata",
+        type: "textarea",
+        label: "Metadata (JSON)",
+        placeholder: '{"order_id": "12345", "user_id": "67890"}',
+        required: false,
+        supportExpressions: true,
+      },
+    ],
+    required: ["amount", "currency", "payment_method"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          paymentIntentId: "pi_1234567890abcdef",
+          amount: config.amount as number,
+          currency: config.currency as string,
+          status: "succeeded",
+          customerId: config.customer_id as string || "cus_1234567890abcdef",
+          description: config.description as string || "Payment for services",
+          metadata: config.metadata ? JSON.parse(config.metadata as string) : {},
+          created: Math.floor(Date.now() / 1000),
+          timestamp,
+          receiptUrl: "https://receipt.stripe.com/1234567890",
+        },
+        metadata: { nodeType: "action", subtype: "stripe_create_payment" },
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/sheets-append-row.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const sheetsAppendRow: Integration = createIntegration({
+  id: "sheets_append_row",
+  name: "Google Sheets Append Row",
+  category: "action",
+  description: "Add data to Google Sheets",
+  icon: "google",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "spreadsheet_id",
+        type: "text",
+        label: "Spreadsheet ID",
+        placeholder: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+        required: true,
+      },
+      {
+        key: "range",
+        type: "text",
+        label: "Range",
+        placeholder: "Sheet1!A:Z",
+        required: true,
+      },
+      {
+        key: "values",
+        type: "textarea",
+        label: "Row Data (JSON Array)",
+        placeholder: '["John", "Doe", "john@example.com", "2024-01-01"]',
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "value_input_option",
+        type: "select",
+        label: "Value Input Option",
+        required: false,
+        options: [
+          { label: "Raw", value: "RAW" },
+          { label: "User Entered", value: "USER_ENTERED" },
+        ],
+      },
+    ],
+    required: ["spreadsheet_id", "range", "values"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const timestamp = new Date().toISOString();
+
+      const spreadsheetId = config.spreadsheet_id as string;
+      const range = config.range as string;
+      const sheetName = range.split("!")[0];
+
+      return {
+        success: true,
+        data: {
+          spreadsheetId,
+          range,
+          updatedRange: `${sheetName}!A123:D123`,
+          updatedRows: 1,
+          updatedColumns: 4,
+          updatedCells: 4,
+          timestamp,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+        },
+        metadata: { nodeType: "action", subtype: "sheets_append_row" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
 ===== File: lib/integrations/actions/email-send.ts =====
 Type: .ts
 ----- Content Start -----
@@ -2817,6 +8024,435 @@ export const emailSend: Integration = createIntegration({
   },
 });
 
+----- Content End -----
+
+===== File: lib/integrations/actions/trello-create-card.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const trelloCreateCard: Integration = createIntegration({
+  id: "trello_create_card",
+  name: "Trello Create Card",
+  category: "action",
+  description: "Create cards in Trello boards",
+  icon: "trello",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "name",
+        type: "text",
+        label: "Card Name",
+        placeholder: "Implement new feature",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "description",
+        type: "textarea",
+        label: "Description",
+        placeholder: "Detailed description of the card...",
+        required: false,
+        supportExpressions: true,
+      },
+      {
+        key: "list_id",
+        type: "text",
+        label: "List ID",
+        placeholder: "5f7b8c9d1a2b3c4d5e6f7g8",
+        required: true,
+      },
+      {
+        key: "due_date",
+        type: "text",
+        label: "Due Date",
+        placeholder: "2024-12-31",
+        required: false,
+      },
+      {
+        key: "labels",
+        type: "text",
+        label: "Label IDs (comma-separated)",
+        placeholder: "5f7b8c9d1a2b3c4d5e6f7g8, 5f7b8c9d1a2b3c4d5e6f7g9",
+        required: false,
+      },
+      {
+        key: "position",
+        type: "select",
+        label: "Position",
+        required: false,
+        options: [
+          { label: "Top", value: "top" },
+          { label: "Bottom", value: "bottom" },
+        ],
+      },
+    ],
+    required: ["name", "list_id"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      const timestamp = new Date().toISOString();
+
+      return {
+        success: true,
+        data: {
+          cardId: "5f7b8c9d1a2b3c4d5e6f7g8",
+          name: config.name as string,
+          description: (config.description as string) || "",
+          listId: config.list_id as string,
+          dueDate: (config.due_date as string) || "",
+          labels: config.labels
+            ? (config.labels as string).split(",").map((id) => id.trim())
+            : [],
+          position: (config.position as string) || "bottom",
+          shortUrl: "https://trello.com/c/abc123",
+          url: "https://trello.com/c/abc123/implement-new-feature",
+          createdAt: timestamp,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "trello_create_card" },
+      };
+    },
+  },
+});
+
+----- Content End -----
+
+===== File: lib/integrations/actions/google-sheets-append.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const googleSheetsAppend: Integration = createIntegration({
+  id: "google_sheets_append",
+  name: "Google Sheets Append",
+  category: "action",
+  description: "Append data to Google Sheets",
+  icon: "google",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "spreadsheet_id",
+        type: "text",
+        label: "Spreadsheet ID",
+        placeholder: "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms",
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Spreadsheet ID is required";
+          }
+          return null;
+        },
+      },
+      {
+        key: "range",
+        type: "text",
+        label: "Range (Sheet Name)",
+        placeholder: "Sheet1 or Sheet1!A:Z",
+        required: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Range is required";
+          }
+          return null;
+        },
+      },
+      {
+        key: "values",
+        type: "textarea",
+        label: "Data to Append (JSON Array)",
+        placeholder: '[["John", "Doe", "john@example.com"], ["Jane", "Smith", "jane@example.com"]]',
+        required: true,
+        supportExpressions: true,
+        validation: (value: unknown) => {
+          if (typeof value !== "string" || value.trim().length === 0) {
+            return "Values are required";
+          }
+          try {
+            const parsed = JSON.parse(value);
+            if (!Array.isArray(parsed)) {
+              return "Values must be a JSON array";
+            }
+            return null;
+          } catch (e) {
+            return "Invalid JSON format";
+          }
+        },
+      },
+      {
+        key: "value_input_option",
+        type: "select",
+        label: "Value Input Option",
+        required: false,
+        options: [
+          { label: "Raw", value: "RAW" },
+          { label: "User Entered", value: "USER_ENTERED" },
+        ],
+      },
+      {
+        key: "insert_data_option",
+        type: "select",
+        label: "Insert Data Option",
+        required: false,
+        options: [
+          { label: "Insert Rows", value: "INSERT_ROWS" },
+          { label: "Overwrite", value: "OVERWRITE" },
+        ],
+      },
+      {
+        key: "include_values_in_response",
+        type: "boolean",
+        label: "Include Values in Response",
+        required: false,
+      },
+    ],
+    required: ["spreadsheet_id", "range", "values"],
+  },
+
+  executor: {
+    async execute(config) {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+      
+      const spreadsheetId = config.spreadsheet_id as string;
+      const range = config.range as string;
+      const valueInputOption = (config.value_input_option as string) || "RAW";
+      const insertDataOption = config.insert_data_option as string;
+      const includeValuesInResponse = config.include_values_in_response as boolean || false;
+      
+      let values: unknown[][] = [];
+      try {
+        values = JSON.parse(config.values as string);
+        if (!Array.isArray(values)) {
+          return {
+            success: false,
+            error: "Values must be a JSON array",
+            data: {
+              timestamp: new Date().toISOString(),
+            },
+            metadata: { nodeType: "action", subtype: "google_sheets_append" },
+          };
+        }
+      } catch (e) {
+        return {
+          success: false,
+          error: "Invalid JSON format for values",
+          data: {
+            timestamp: new Date().toISOString(),
+          },
+          metadata: { nodeType: "action", subtype: "google_sheets_append" },
+        };
+      }
+
+      // Extract sheet name from range
+      const sheetName = range.includes("!") ? range.split("!")[0] : range;
+      
+      // Calculate the updated range
+      const rowCount = values.length;
+      const colCount = values[0]?.length || 0;
+      const startRow = Math.floor(Math.random() * 100) + 1; // Mock starting row
+      const endRow = startRow + rowCount - 1;
+      const startCol = "A";
+      const endCol = String.fromCharCode(65 + colCount - 1); // Convert number to letter
+      const updatedRange = `${sheetName}!${startCol}${startRow}:${endCol}${endRow}`;
+
+      return {
+        success: true,
+        data: {
+          spreadsheetId,
+          tableRange: range,
+          updates: {
+            spreadsheetId,
+            updatedRange,
+            updatedRows: rowCount,
+            updatedColumns: colCount,
+            updatedCells: rowCount * colCount,
+            updatedData: includeValuesInResponse ? values : undefined,
+          },
+          valueInputOption,
+          insertDataOption: insertDataOption || null,
+          includeValuesInResponse,
+          timestamp: new Date().toISOString(),
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
+        },
+        metadata: { nodeType: "action", subtype: "google_sheets_append" },
+      };
+    },
+
+    validate(config) {
+      const errors: Record<string, string> = {};
+
+      if (!config.spreadsheet_id) {
+        errors.spreadsheet_id = "Spreadsheet ID is required";
+      }
+
+      if (!config.range) {
+        errors.range = "Range is required";
+      }
+
+      if (!config.values) {
+        errors.values = "Values are required";
+      } else {
+        try {
+          const parsed = JSON.parse(config.values as string);
+          if (!Array.isArray(parsed)) {
+            errors.values = "Values must be a JSON array";
+          }
+        } catch (e) {
+          errors.values = "Invalid JSON format for values";
+        }
+      }
+
+      return {
+        valid: Object.keys(errors).length === 0,
+        errors,
+      };
+    },
+  },
+}); 
+----- Content End -----
+
+===== File: lib/integrations/actions/salesforce-create-lead.ts =====
+Type: .ts
+----- Content Start -----
+import { createIntegration } from "../utils";
+import type { Integration } from "../types";
+
+export const salesforceCreateLead: Integration = createIntegration({
+  id: "salesforce_create_lead",
+  name: "Salesforce Create Lead",
+  category: "action",
+  description: "Create leads in Salesforce",
+  icon: "salesforce",
+  version: "1.0.0",
+
+  auth: {
+    type: "oauth2",
+    required: true,
+  },
+
+  schema: {
+    fields: [
+      {
+        key: "firstname",
+        type: "text",
+        label: "First Name",
+        placeholder: "John",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "lastname",
+        type: "text",
+        label: "Last Name",
+        placeholder: "Doe",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "email",
+        type: "email",
+        label: "Email",
+        placeholder: "john.doe@example.com",
+        required: true,
+      },
+      {
+        key: "company",
+        type: "text",
+        label: "Company",
+        placeholder: "Acme Corporation",
+        required: true,
+        supportExpressions: true,
+      },
+      {
+        key: "phone",
+        type: "text",
+        label: "Phone",
+        placeholder: "+1-555-123-4567",
+        required: false,
+      },
+      {
+        key: "title",
+        type: "text",
+        label: "Title",
+        placeholder: "VP of Engineering",
+        required: false,
+      },
+      {
+        key: "lead_source",
+        type: "select",
+        label: "Lead Source",
+        required: false,
+        options: [
+          { label: "Web", value: "Web" },
+          { label: "Phone Inquiry", value: "Phone Inquiry" },
+          { label: "Email", value: "Email" },
+          { label: "Campaign", value: "Campaign" },
+          { label: "Partner", value: "Partner" },
+          { label: "Other", value: "Other" },
+        ],
+      },
+      {
+        key: "status",
+        type: "select",
+        label: "Status",
+        required: false,
+        options: [
+          { label: "New", value: "New" },
+          { label: "Contacted", value: "Contacted" },
+          { label: "Qualified", value: "Qualified" },
+          { label: "Unqualified", value: "Unqualified" },
+        ],
+      },
+    ],
+    required: ["firstname", "lastname", "email", "company"],
+  },
+
+  executor: {
+    async execute(config) {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const timestamp = new Date().toISOString();
+      
+      return {
+        success: true,
+        data: {
+          leadId: "00Q1234567890ABCD",
+          firstname: config.firstname as string,
+          lastname: config.lastname as string,
+          email: config.email as string,
+          company: config.company as string,
+          phone: config.phone as string || "",
+          title: config.title as string || "",
+          leadSource: config.lead_source as string || "Web",
+          status: config.status as string || "New",
+          createdDate: timestamp,
+          lastModifiedDate: timestamp,
+          systemModstamp: timestamp,
+          timestamp,
+        },
+        metadata: { nodeType: "action", subtype: "salesforce_create_lead" },
+      };
+    },
+  },
+}); 
 ----- Content End -----
 
 ===== File: lib/integrations/actions/set-variable.ts =====

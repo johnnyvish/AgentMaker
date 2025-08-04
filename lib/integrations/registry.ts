@@ -84,6 +84,34 @@ import { smsSend } from "./actions/sms-send";
 import { redisSet } from "./actions/redis-set";
 import { cloudinaryUploadImage } from "./actions/cloudinary-upload-image";
 
+// Calendar & Scheduling
+import { googleCalendarCreateEvent } from "./actions/google-calendar-create-event";
+import { calendlyCreateBooking } from "./actions/calendly-create-booking";
+import { outlookCalendarCreateEvent } from "./actions/outlook-calendar-create-event";
+
+// File Processing & Data
+import { csvParser } from "./actions/csv-parser";
+import { pdfGenerator } from "./actions/pdf-generator";
+import { imageProcessor } from "./actions/image-processor";
+
+// Authentication & Security
+import { jwtTokenGenerator } from "./actions/jwt-token-generator";
+import { passwordGenerator } from "./actions/password-generator";
+
+// Real Monitoring & Observability
+import { httpMonitor } from "./actions/http-monitor";
+import { logParser } from "./actions/log-parser";
+
+// Advanced Logic
+import { jsonPathExtractor } from "./logic/json-path-extractor";
+import { templateEngine } from "./logic/template-engine";
+
+// Communication Upgrades
+import { whatsappSendMessage } from "./actions/whatsapp-send-message";
+
+// E-commerce & Payments
+import { shopifyCreateProduct } from "./actions/shopify-create-product";
+
 // ============================================
 // INTEGRATION REGISTRY CLASS
 // ============================================
@@ -160,6 +188,34 @@ class IntegrationRegistry {
       smsSend,
       redisSet,
       cloudinaryUploadImage,
+
+      // Calendar & Scheduling
+      googleCalendarCreateEvent,
+      calendlyCreateBooking,
+      outlookCalendarCreateEvent,
+
+      // File Processing & Data
+      csvParser,
+      pdfGenerator,
+      imageProcessor,
+
+      // Authentication & Security
+      jwtTokenGenerator,
+      passwordGenerator,
+
+      // Real Monitoring & Observability
+      httpMonitor,
+      logParser,
+
+      // Advanced Logic
+      jsonPathExtractor,
+      templateEngine,
+
+      // Communication Upgrades
+      whatsappSendMessage,
+
+      // E-commerce & Payments
+      shopifyCreateProduct,
 
       // Logic
       filterCondition,
