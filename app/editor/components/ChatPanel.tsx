@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { X, Send, Bot, User } from "lucide-react";
+import { useAutomationContext } from "../context/AutomationContext";
 
 interface Message {
   id: string;
@@ -17,6 +18,16 @@ interface ChatPanelProps {
 }
 
 const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
+  const {
+    nodes,
+    edges,
+    selectedNode,
+    getTriggerIntegrations,
+    getActionIntegrations,
+    getLogicIntegrations,
+    addWorkflowFromAI,
+  } = useAutomationContext();
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
@@ -27,7 +38,44 @@ const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
   ]);
   const [inputValue, setInputValue] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Build workflow context for AI
+  const buildWorkflowContext = () => {
+    const triggers = getTriggerIntegrations();
+    const actions = getActionIntegrations();
+    const logic = getLogicIntegrations();
+
+    return `
+Available integrations:
+Triggers: ${triggers.map((t) => t.name).join(", ")}
+Actions: ${actions.map((a) => a.name).join(", ")}
+Logic: ${logic.map((l) => l.name).join(", ")}
+
+Current workflow: ${nodes.length} nodes, ${edges.length} connections
+${
+  selectedNode
+    ? `Selected: ${selectedNode.data.label || selectedNode.data.subtype}`
+    : "No node selected"
+}
+Execution state: ${nodes.length > 0 ? "Ready to execute" : "Empty workflow"}
+`;
+  };
+
+  const extractWorkflowConfiguration = (response: string) => {
+    const match = response.match(
+      /<CREATE_WORKFLOW>([\s\S]*?)<\/CREATE_WORKFLOW>/
+    );
+    if (!match) return null;
+
+    try {
+      return JSON.parse(match[1]);
+    } catch (error) {
+      console.error("Failed to parse workflow configuration:", error);
+      return null;
+    }
+  };
 
   const handleSend = async () => {
     if (!inputValue.trim()) return;
@@ -42,18 +90,45 @@ const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
     setIsTyping(true);
+    setError(null);
 
-    // Mock AI response
-    setTimeout(() => {
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          messages: messages.concat(userMessage),
+          workflowContext: buildWorkflowContext(),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to get AI response");
+      }
+
+      const data = await response.json();
       const aiResponse: Message = {
         id: (Date.now() + 1).toString(),
-        text: getMockResponse(inputValue),
+        text: data.response,
         sender: "ai",
         timestamp: new Date(),
       };
+
       setMessages((prev) => [...prev, aiResponse]);
+
+      // Check if AI wants to create a workflow
+      const workflowConfig = extractWorkflowConfiguration(data.response);
+      if (workflowConfig) {
+        addWorkflowFromAI(workflowConfig);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send message");
+      console.error("Chat error:", err);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const scrollToBottom = () => {
@@ -63,32 +138,6 @@ const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
   useEffect(() => {
     scrollToBottom();
   }, [messages, isTyping]);
-
-  const getMockResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-
-    if (input.includes("slack") || input.includes("notification")) {
-      return "I can help you set up Slack notifications! You'll want to start with a trigger (like Manual, Webhook, or Schedule), then add a 'Send Slack Message' action. Would you like me to create a template for you?";
-    }
-
-    if (input.includes("email") || input.includes("mail")) {
-      return "Email automation is great for notifications and reports. I recommend using the 'Send Email' action with dynamic content from your triggers. What kind of email workflow are you thinking about?";
-    }
-
-    if (input.includes("api") || input.includes("webhook")) {
-      return "API integrations are powerful! You can use the 'API Request' action to fetch data or the 'Webhook' trigger to receive data. The key is properly mapping the data fields between steps.";
-    }
-
-    if (
-      input.includes("schedule") ||
-      input.includes("timer") ||
-      input.includes("daily")
-    ) {
-      return "Scheduled workflows are perfect for recurring tasks! Use the 'Schedule' trigger with cron expressions. For daily tasks, try '0 9 * * *' for 9 AM daily. What do you want to automate?";
-    }
-
-    return "That's an interesting automation idea! I'd recommend starting with a trigger that matches your use case, then adding the necessary actions and logic steps. Would you like me to suggest a specific workflow structure?";
-  };
 
   return (
     <div
@@ -122,6 +171,13 @@ const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {error && (
+          <div className="flex justify-start">
+            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+              <p className="text-sm">{error}</p>
+            </div>
+          </div>
+        )}
         {messages.map((message) => (
           <div
             key={message.id}

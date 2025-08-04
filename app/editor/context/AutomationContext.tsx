@@ -90,6 +90,22 @@ interface AutomationContextType {
   getLogicIntegrations: () => Integration[];
   updateNodeConfig: (nodeId: string, config: Record<string, unknown>) => void;
   deleteSelectedNode: () => void;
+  addWorkflowFromAI: (workflowConfig: {
+    description?: string;
+    nodes: Array<{
+      id: string;
+      type: string;
+      subtype: string;
+      label?: string;
+      config?: Record<string, unknown>;
+      position?: { x: number; y: number };
+    }>;
+    edges: Array<{
+      id: string;
+      source: string;
+      target: string;
+    }>;
+  }) => void;
   copyExpression: (expression: string) => void;
   copyDataFieldExpressionWithFeedback: (
     nodeId: string,
@@ -261,6 +277,52 @@ export const AutomationProvider = ({ children }: AutomationProviderProps) => {
     );
     setSelectedNode(null);
   }, [selectedNode]);
+
+  const addWorkflowFromAI = useCallback(
+    (workflowConfig: {
+      description?: string;
+      nodes: Array<{
+        id: string;
+        type: string;
+        subtype: string;
+        label?: string;
+        config?: Record<string, unknown>;
+        position?: { x: number; y: number };
+      }>;
+      edges: Array<{
+        id: string;
+        source: string;
+        target: string;
+      }>;
+    }) => {
+      const newNodes = workflowConfig.nodes.map((nodeConfig) => {
+        const integration = integrationRegistry.get(nodeConfig.subtype);
+        return {
+          id: nodeConfig.id,
+          type: nodeConfig.type,
+          position: nodeConfig.position || { x: 100, y: 100 },
+          data: {
+            label: nodeConfig.label || integration?.name || nodeConfig.subtype,
+            subtype: nodeConfig.subtype,
+            config: nodeConfig.config || {},
+            description: integration?.description || "",
+          },
+        };
+      });
+
+      const newEdges = workflowConfig.edges.map((edge) => ({
+        id: edge.id,
+        source: edge.source,
+        target: edge.target,
+        style: { stroke: "#d1d5db", strokeWidth: 2 },
+        animated: false,
+      }));
+
+      setNodes(newNodes);
+      setEdges(newEdges);
+    },
+    []
+  );
 
   // Copy operations
   const copyExpression = useCallback((expression: string) => {
@@ -493,6 +555,7 @@ export const AutomationProvider = ({ children }: AutomationProviderProps) => {
     getLogicIntegrations,
     updateNodeConfig,
     deleteSelectedNode,
+    addWorkflowFromAI,
     copyExpression,
     copyDataFieldExpressionWithFeedback,
     handleTitleEdit,

@@ -1,6 +1,6 @@
 "use client";
 
-import { MessageCircle } from "lucide-react";
+import { Bot } from "lucide-react";
 
 interface ChatButtonProps {
   onClick: () => void;
@@ -14,7 +14,7 @@ const ChatButton = ({ onClick, hasUnread = false }: ChatButtonProps) => {
       className="fixed bottom-6 right-6 z-50 p-4 bg-[var(--primary)] text-[var(--primary-foreground)] rounded-full shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105"
       title="Chat with AI Assistant"
     >
-      <MessageCircle className="w-6 h-6" />
+      <Bot className="w-6 h-6" />
       {hasUnread && (
         <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
       )}
