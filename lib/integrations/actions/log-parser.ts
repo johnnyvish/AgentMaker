@@ -15,7 +15,8 @@ export const logParser: Integration = createIntegration({
         key: "log_content",
         type: "textarea",
         label: "Log Content",
-        placeholder: "2024-12-01 10:30:15 [ERROR] Database connection failed\n2024-12-01 10:30:16 [INFO] Retrying connection...",
+        placeholder:
+          "2024-12-01 10:30:15 [ERROR] Database connection failed\n2024-12-01 10:30:16 [INFO] Retrying connection...",
         required: true,
         supportExpressions: true,
       },
@@ -37,7 +38,8 @@ export const logParser: Integration = createIntegration({
         key: "custom_regex",
         type: "text",
         label: "Custom Regex Pattern",
-        placeholder: "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) \\[(\\w+)\\] (.+)",
+        placeholder:
+          "(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2}) \\[(\\w+)\\] (.+)",
         required: false,
       },
       {
@@ -119,14 +121,14 @@ export const logParser: Integration = createIntegration({
     async execute(config) {
       await new Promise((resolve) => setTimeout(resolve, 600));
       const timestamp = new Date().toISOString();
-      
+
       const logContent = config.log_content as string;
       const logFormat = (config.log_format as string) || "auto";
-      const customRegex = config.custom_regex as string || "";
-      const extractFields = config.extract_fields as string || "";
-      const timeRange = config.time_range as string || "";
+      const customRegex = (config.custom_regex as string) || "";
+      const extractFields = (config.extract_fields as string) || "";
+      const timeRange = (config.time_range as string) || "";
       const minSeverity = (config.min_severity as string) || "debug";
-      const groupBy = config.group_by as string || "";
+      const groupBy = (config.group_by as string) || "";
       const limitResults = (config.limit_results as number) || 100;
       const sendAlerts = (config.send_alerts as boolean) || false;
       const alertThreshold = (config.alert_threshold as number) || 5;
@@ -150,7 +152,7 @@ export const logParser: Integration = createIntegration({
       }
 
       // Mock log parsing
-      const lines = logContent.split('\n').filter(line => line.trim() !== '');
+      const lines = logContent.split("\n").filter((line) => line.trim() !== "");
       const parsedLogs = [];
       let errorCount = 0;
       let warningCount = 0;
@@ -158,16 +160,20 @@ export const logParser: Integration = createIntegration({
 
       for (let i = 0; i < Math.min(lines.length, limitResults); i++) {
         const line = lines[i];
-        const isError = errorPatterns.some(pattern => line.includes(pattern));
-        const isWarning = warningPatterns.some(pattern => line.includes(pattern));
-        
+        const isError = errorPatterns.some((pattern) => line.includes(pattern));
+        const isWarning = warningPatterns.some((pattern) =>
+          line.includes(pattern)
+        );
+
         if (isError) errorCount++;
         else if (isWarning) warningCount++;
         else infoCount++;
 
         const logEntry = {
           line_number: i + 1,
-          timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString(),
+          timestamp: new Date(
+            Date.now() - Math.random() * 86400000
+          ).toISOString(),
           level: isError ? "ERROR" : isWarning ? "WARN" : "INFO",
           message: line,
           raw_line: line,
@@ -178,23 +184,28 @@ export const logParser: Integration = createIntegration({
       }
 
       // Group results if specified
-      let groupedResults = null;
+      let groupedResults: Record<string, unknown[]> | null = null;
       if (groupBy) {
         groupedResults = {};
-        parsedLogs.forEach(log => {
-          const key = log[groupBy] || "unknown";
-          if (!groupedResults[key]) {
-            groupedResults[key] = [];
+        parsedLogs.forEach((log) => {
+          const key =
+            ((log as Record<string, unknown>)[groupBy] as string) || "unknown";
+          if (!groupedResults![key]) {
+            groupedResults![key] = [];
           }
-          groupedResults[key].push(log);
+          groupedResults![key].push(log);
         });
       }
 
       // Check if alerts should be sent
       const shouldAlert = sendAlerts && errorCount >= alertThreshold;
-      const alertMessage = shouldAlert ? `High error count detected: ${errorCount} errors in the last log check` : null;
+      const alertMessage = shouldAlert
+        ? `High error count detected: ${errorCount} errors in the last log check`
+        : null;
 
-      const parserId = `log_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const parserId = `log_${Date.now()}_${Math.random()
+        .toString(36)
+        .substr(2, 9)}`;
 
       return {
         success: true,
@@ -202,7 +213,9 @@ export const logParser: Integration = createIntegration({
           parserId,
           logFormat,
           customRegex: customRegex || null,
-          extractFields: extractFields ? extractFields.split(',').map(f => f.trim()) : null,
+          extractFields: extractFields
+            ? extractFields.split(",").map((f) => f.trim())
+            : null,
           timeRange: timeRange || null,
           minSeverity,
           groupBy: groupBy || null,
@@ -234,7 +247,8 @@ export const logParser: Integration = createIntegration({
       }
 
       if (config.log_format === "regex" && !config.custom_regex) {
-        errors.custom_regex = "Custom regex pattern is required when using regex format";
+        errors.custom_regex =
+          "Custom regex pattern is required when using regex format";
       }
 
       if (config.error_patterns) {
@@ -249,15 +263,23 @@ export const logParser: Integration = createIntegration({
         try {
           JSON.parse(config.warning_patterns as string);
         } catch {
-          errors.warning_patterns = "Warning patterns must be a valid JSON array";
+          errors.warning_patterns =
+            "Warning patterns must be a valid JSON array";
         }
       }
 
-      if (config.limit_results && (typeof config.limit_results !== "number" || config.limit_results <= 0)) {
+      if (
+        config.limit_results &&
+        (typeof config.limit_results !== "number" || config.limit_results <= 0)
+      ) {
         errors.limit_results = "Limit results must be a positive number";
       }
 
-      if (config.alert_threshold && (typeof config.alert_threshold !== "number" || config.alert_threshold <= 0)) {
+      if (
+        config.alert_threshold &&
+        (typeof config.alert_threshold !== "number" ||
+          config.alert_threshold <= 0)
+      ) {
         errors.alert_threshold = "Alert threshold must be a positive number";
       }
 
@@ -267,4 +289,4 @@ export const logParser: Integration = createIntegration({
       };
     },
   },
-}); 
+});

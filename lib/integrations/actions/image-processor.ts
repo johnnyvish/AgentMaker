@@ -213,6 +213,7 @@ export const imageProcessor: Integration = createIntegration({
           imageId,
           operation,
           originalImage: imageUrl || "base64_image",
+          imageBase64: imageBase64 || null,
           processedImage: `https://api.example.com/images/${imageId}/download`,
           outputFormat,
           quality,
@@ -221,6 +222,7 @@ export const imageProcessor: Integration = createIntegration({
             height: height || 600,
             originalWidth: 1200,
             originalHeight: 800,
+            maintainAspectRatio,
           },
           cropInfo:
             operation === "crop"
