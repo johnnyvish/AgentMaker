@@ -16,6 +16,7 @@ import {
   Database,
   Search,
   ArrowUpRight,
+  ArrowLeft,
   Brain,
   Save,
   Play,
@@ -94,6 +95,8 @@ export const getIcon = (
       return <Search className={iconClass} />;
     case "arrow-up-right":
       return <ArrowUpRight className={iconClass} />;
+    case "arrow-left":
+      return <ArrowLeft className={iconClass} />;
     case "dashboard":
       return <LayoutDashboard className={iconClass} />;
     case "grid":

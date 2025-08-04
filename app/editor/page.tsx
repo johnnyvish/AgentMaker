@@ -104,12 +104,12 @@ const BaseNode = ({
     if (selected) {
       return (
         data.selectedBorderClass ||
-        "border-gray-800 dark:border-gray-200 shadow-lg ring-1 ring-gray-500/20 dark:ring-gray-400/20"
+        "border-2 border-blue-500 dark:border-blue-400 shadow-xl ring-2 ring-blue-500/30 dark:ring-blue-400/30 bg-blue-50/50 dark:bg-blue-950/20"
       );
     } else {
       return (
         data.borderClass ||
-        "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+        "border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
       );
     }
   };
@@ -120,6 +120,7 @@ const BaseNode = ({
         relative bg-[var(--card)] rounded-xl shadow-sm border transition-all duration-200
         min-w-[180px] px-5 py-4 group hover:shadow-md
         ${getBorderClasses()}
+        ${data.status === "running" ? "animate-pulse" : ""}
       `}
     >
       {/* Only show left handle for non-trigger nodes or triggers that support input */}
@@ -232,12 +233,12 @@ const BranchNode = ({
     if (selected) {
       return (
         data.selectedBorderClass ||
-        "border-gray-800 dark:border-gray-200 shadow-lg ring-1 ring-gray-500/20 dark:ring-gray-400/20"
+        "border-2 border-blue-500 dark:border-blue-400 shadow-xl ring-2 ring-blue-500/30 dark:ring-blue-400/30 bg-blue-50/50 dark:bg-blue-950/20"
       );
     } else {
       return (
         data.borderClass ||
-        "border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+        "border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
       );
     }
   };
@@ -248,6 +249,7 @@ const BranchNode = ({
         relative bg-[var(--card)] rounded-xl shadow-sm border transition-all duration-200
         min-w-[180px] px-5 py-4 group hover:shadow-md
         ${getBorderClasses()}
+        ${data.status === "running" ? "animate-pulse" : ""}
       `}
     >
       {/* Input handle */}

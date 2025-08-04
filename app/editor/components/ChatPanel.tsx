@@ -93,7 +93,7 @@ const ChatPanel = ({ isOpen, onClose }: ChatPanelProps) => {
   return (
     <div
       className={`
-        bg-[var(--card)] border-l border-[var(--border)] transition-all duration-300 ease-in-out flex flex-col z-[60]
+        bg-[var(--card)] border-l border-[var(--border)] flex flex-col z-[60]
         ${isOpen ? "w-80 sm:w-96 md:w-[28rem]" : "w-0 overflow-hidden"}
       `}
     >

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { getIcon } from "../../../hooks/useIcons";
 import { useAutomationContext } from "../context/AutomationContext";
 import type { Integration } from "../../../lib/integrations/types";
@@ -17,6 +17,33 @@ const NodeLibraryPanel = () => {
   } = useAutomationContext();
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [currentView, setCurrentView] = useState<
+    "main" | "templates" | "triggers" | "actions" | "logic"
+  >("main");
+  const [viewHistory, setViewHistory] = useState<string[]>(["main"]);
+
+  // Navigation functions
+  const navigateToCategory = (
+    categoryId: "templates" | "triggers" | "actions" | "logic"
+  ) => {
+    setCurrentView(categoryId);
+    setViewHistory((prev) => [...prev, categoryId]);
+    setSearchTerm(""); // Clear search when navigating
+  };
+
+  const navigateBack = () => {
+    const newHistory = viewHistory.slice(0, -1);
+    setViewHistory(newHistory);
+    setCurrentView(
+      (newHistory[newHistory.length - 1] as
+        | "main"
+        | "templates"
+        | "triggers"
+        | "actions"
+        | "logic") || "main"
+    );
+    setSearchTerm(""); // Clear search when going back
+  };
 
   const renderSidebarIcon = (
     iconName: string,
@@ -53,43 +80,82 @@ const NodeLibraryPanel = () => {
     event.dataTransfer.effectAllowed = "move";
   };
 
-  // Filter integrations based on search term
-  const filteredTriggers = useMemo(() => {
-    if (!searchTerm) return getTriggerIntegrations();
-    return getTriggerIntegrations().filter(
-      (integration) =>
-        integration.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        integration.description.toLowerCase().includes(searchTerm.toLowerCase())
+  const onDragStartTemplate = (
+    event: React.DragEvent,
+    template: WorkflowTemplate
+  ) => {
+    event.dataTransfer.setData(
+      "application/reactflow/template",
+      JSON.stringify(template)
     );
-  }, [searchTerm, getTriggerIntegrations]);
+    event.dataTransfer.effectAllowed = "move";
+  };
 
-  const filteredActions = useMemo(() => {
-    if (!searchTerm) return getActionIntegrations();
-    return getActionIntegrations().filter(
-      (integration) =>
-        integration.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        integration.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, getActionIntegrations]);
+  // Get all integrations for context-aware filtering
+  const allTriggers = getTriggerIntegrations();
+  const allActions = getActionIntegrations();
+  const allLogic = getLogicIntegrations();
+  const allTemplates = getTemplates();
 
-  const filteredLogic = useMemo(() => {
-    if (!searchTerm) return getLogicIntegrations();
-    return getLogicIntegrations().filter(
-      (integration) =>
-        integration.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        integration.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, getLogicIntegrations]);
+  // Context-aware filtering based on current view
+  const getFilteredData = () => {
+    if (currentView === "main") {
+      // When in main view, search across all categories
+      if (!searchTerm) {
+        return {
+          templates: allTemplates.slice(0, 2), // Show first 2
+          triggers: allTriggers.slice(0, 3), // Show first 3
+          actions: allActions.slice(0, 3), // Show first 3
+          logic: allLogic.slice(0, 3), // Show first 3
+        };
+      } else {
+        // Search across all categories
+        return {
+          templates: allTemplates.filter(
+            (item) =>
+              item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              item.description.toLowerCase().includes(searchTerm.toLowerCase())
+          ),
+          triggers: allTriggers.filter(
+            (item) =>
+              item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              item.description.toLowerCase().includes(searchTerm.toLowerCase())
+          ),
+          actions: allActions.filter(
+            (item) =>
+              item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              item.description.toLowerCase().includes(searchTerm.toLowerCase())
+          ),
+          logic: allLogic.filter(
+            (item) =>
+              item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              item.description.toLowerCase().includes(searchTerm.toLowerCase())
+          ),
+        };
+      }
+    } else {
+      // When in specific category view, only filter that category
+      const filterFn = (item: Integration | WorkflowTemplate) =>
+        !searchTerm ||
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase());
 
-  // Add filtered templates
-  const filteredTemplates = useMemo(() => {
-    if (!searchTerm) return getTemplates();
-    return getTemplates().filter(
-      (template) =>
-        template.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        template.description.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [searchTerm, getTemplates]);
+      switch (currentView) {
+        case "templates":
+          return { [currentView]: allTemplates.filter(filterFn) };
+        case "triggers":
+          return { [currentView]: allTriggers.filter(filterFn) };
+        case "actions":
+          return { [currentView]: allActions.filter(filterFn) };
+        case "logic":
+          return { [currentView]: allLogic.filter(filterFn) };
+        default:
+          return {};
+      }
+    }
+  };
+
+  const filteredData = getFilteredData();
 
   const renderIntegrationCard = (
     integration: Integration,
@@ -133,7 +199,6 @@ const NodeLibraryPanel = () => {
     </div>
   );
 
-  // Add template card renderer
   const renderTemplateCard = (template: WorkflowTemplate, index: number) => (
     <div
       key={`template-${index}`}
@@ -164,16 +229,177 @@ const NodeLibraryPanel = () => {
     </div>
   );
 
-  // Add this new function in the same component
-  const onDragStartTemplate = (
-    event: React.DragEvent,
-    template: WorkflowTemplate
+  const renderCategoryPreview = (
+    categoryKey: "templates" | "triggers" | "actions" | "logic",
+    categoryName: string,
+    items: (Integration | WorkflowTemplate)[],
+    totalCount: number
   ) => {
-    event.dataTransfer.setData(
-      "application/reactflow/template",
-      JSON.stringify(template)
+    const showViewAll = totalCount > items.length && !searchTerm;
+
+    return (
+      <div key={categoryKey}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-semibold text-[var(--foreground)]">
+            {categoryName}
+          </h3>
+          {showViewAll && (
+            <button
+              onClick={() => navigateToCategory(categoryKey)}
+              className="text-xs text-[var(--muted-foreground)] hover:text-[var(--foreground)] transition-colors"
+            >
+              View all {totalCount}
+            </button>
+          )}
+        </div>
+        <div className="space-y-2">
+          {items.map((item, index) =>
+            categoryKey === "templates"
+              ? renderTemplateCard(item as WorkflowTemplate, index)
+              : renderIntegrationCard(item as Integration, categoryKey, index)
+          )}
+        </div>
+      </div>
     );
-    event.dataTransfer.effectAllowed = "move";
+  };
+
+  const renderMainView = () => {
+    const hasResults = Object.values(filteredData).some(
+      (items: (Integration | WorkflowTemplate)[]) => items?.length > 0
+    );
+
+    if (searchTerm && !hasResults) {
+      return (
+        <div className="text-center py-8">
+          <div className="text-[var(--muted-foreground)] text-sm">
+            No components or templates found for &quot;{searchTerm}&quot;
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {filteredData.templates &&
+          filteredData.templates.length > 0 &&
+          renderCategoryPreview(
+            "templates",
+            "Templates",
+            filteredData.templates,
+            allTemplates.length
+          )}
+        {filteredData.triggers &&
+          filteredData.triggers.length > 0 &&
+          renderCategoryPreview(
+            "triggers",
+            "Triggers",
+            filteredData.triggers,
+            allTriggers.length
+          )}
+        {filteredData.actions &&
+          filteredData.actions.length > 0 &&
+          renderCategoryPreview(
+            "actions",
+            "Actions",
+            filteredData.actions,
+            allActions.length
+          )}
+        {filteredData.logic &&
+          filteredData.logic.length > 0 &&
+          renderCategoryPreview(
+            "logic",
+            "Logic",
+            filteredData.logic,
+            allLogic.length
+          )}
+      </div>
+    );
+  };
+
+  const renderCategoryView = () => {
+    const categoryData =
+      (filteredData[currentView as keyof typeof filteredData] as (
+        | Integration
+        | WorkflowTemplate
+      )[]) || [];
+    const categoryNames = {
+      templates: "Templates",
+      triggers: "Triggers",
+      actions: "Actions",
+      logic: "Logic",
+    };
+
+    const categoryName =
+      categoryNames[currentView as keyof typeof categoryNames];
+
+    return (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          {categoryData.map(
+            (item: Integration | WorkflowTemplate, index: number) =>
+              currentView === "templates"
+                ? renderTemplateCard(item as WorkflowTemplate, index)
+                : renderIntegrationCard(item as Integration, currentView, index)
+          )}
+        </div>
+
+        {searchTerm && categoryData.length === 0 && (
+          <div className="text-center py-8">
+            <div className="text-[var(--muted-foreground)] text-sm">
+              No {categoryName.toLowerCase()} found for &quot;{searchTerm}&quot;
+            </div>
+          </div>
+        )}
+
+        {!searchTerm && categoryData.length === 0 && (
+          <div className="text-center py-8">
+            <div className="text-[var(--muted-foreground)] text-sm">
+              No {categoryName.toLowerCase()} available
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const getSearchPlaceholder = () => {
+    if (currentView === "main") {
+      return "Search components...";
+    }
+    const categoryNames = {
+      templates: "templates",
+      triggers: "triggers",
+      actions: "actions",
+      logic: "logic components",
+    };
+    return `Search ${
+      categoryNames[currentView as keyof typeof categoryNames]
+    }...`;
+  };
+
+  const getBreadcrumb = () => {
+    if (currentView === "main") return null;
+
+    const categoryNames = {
+      templates: "Templates",
+      triggers: "Triggers",
+      actions: "Actions",
+      logic: "Logic",
+    };
+
+    return (
+      <div className="flex items-center gap-2 mb-4">
+        <button
+          onClick={navigateBack}
+          className="flex items-center gap-1 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+        >
+          {getIcon("arrow-left", "w-4 h-4")}
+        </button>
+        <span className="text-sm font-medium text-[var(--foreground)]">
+          {categoryNames[currentView as keyof typeof categoryNames]}
+        </span>
+      </div>
+    );
   };
 
   return (
@@ -192,7 +418,7 @@ const NodeLibraryPanel = () => {
             </div>
             <input
               type="text"
-              placeholder="Search components..."
+              placeholder={getSearchPlaceholder()}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-3 py-2 text-sm bg-[var(--muted)] border border-[var(--border)] rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-[var(--foreground)] placeholder-[var(--muted-foreground)]"
@@ -209,75 +435,9 @@ const NodeLibraryPanel = () => {
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-y-auto px-6 pb-4 custom-scrollbar">
-        <div className="space-y-6 pt-4">
-          {/* Templates Section - Add this FIRST */}
-          {filteredTemplates.length > 0 && (
-            <div>
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
-                  Templates
-                </h3>
-                {filteredTemplates.map((template, index) =>
-                  renderTemplateCard(template, index)
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Triggers Section */}
-          {filteredTriggers.length > 0 && (
-            <div>
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
-                  Triggers
-                </h3>
-                {filteredTriggers.map((integration, index) =>
-                  renderIntegrationCard(integration, "trigger", index)
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Actions Section */}
-          {filteredActions.length > 0 && (
-            <div>
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
-                  Actions
-                </h3>
-                {filteredActions.map((integration, index) =>
-                  renderIntegrationCard(integration, "action", index)
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Logic Section */}
-          {filteredLogic.length > 0 && (
-            <div>
-              <div className="space-y-2">
-                <h3 className="text-sm font-semibold text-[var(--foreground)] mb-3">
-                  Logic
-                </h3>
-                {filteredLogic.map((integration, index) =>
-                  renderIntegrationCard(integration, "logic", index)
-                )}
-              </div>
-            </div>
-          )}
-
-          {/* Update No Results Message */}
-          {searchTerm &&
-            filteredTemplates.length === 0 &&
-            filteredTriggers.length === 0 &&
-            filteredActions.length === 0 &&
-            filteredLogic.length === 0 && (
-              <div className="text-center py-8">
-                <div className="text-[var(--muted-foreground)] text-sm">
-                  No components or templates found for &quot;{searchTerm}&quot;
-                </div>
-              </div>
-            )}
+        <div className="pt-4 pb-12">
+          {getBreadcrumb()}
+          {currentView === "main" ? renderMainView() : renderCategoryView()}
         </div>
       </div>
     </div>
