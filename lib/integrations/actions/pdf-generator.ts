@@ -184,6 +184,7 @@ export const pdfGenerator: Integration = createIntegration({
           headerText: (config.header_text as string) || "",
           footerText: (config.footer_text as string) || "",
           watermark,
+          pdfContent,
           fileSize: Math.floor(Math.random() * 500000) + 50000, // 50KB - 550KB
           pageCount:
             templateType === "merge"

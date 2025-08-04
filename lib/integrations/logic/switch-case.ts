@@ -40,7 +40,7 @@ export const switchCase: Integration = createIntegration({
               return "Cases must be a JSON object";
             }
             return null;
-          } catch (_e) {
+          } catch {
             return "Invalid JSON format";
           }
         },
@@ -70,7 +70,7 @@ export const switchCase: Integration = createIntegration({
 
       try {
         cases = JSON.parse(config.cases as string);
-      } catch (_e) {
+      } catch {
         return {
           success: false,
           error: "Invalid cases JSON format",
@@ -131,7 +131,7 @@ export const switchCase: Integration = createIntegration({
           ) {
             errors.cases = "Cases must be a JSON object";
           }
-        } catch (_e) {
+        } catch {
           errors.cases = "Invalid JSON format for cases";
         }
       }

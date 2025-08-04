@@ -105,7 +105,7 @@ export const router: Integration = createIntegration({
               return "Routes must be a JSON object";
             }
             return null;
-          } catch (_e) {
+          } catch {
             return "Invalid JSON format";
           }
         },
@@ -143,7 +143,7 @@ export const router: Integration = createIntegration({
       let routes = {};
       try {
         routes = JSON.parse(config.routes as string);
-      } catch (_e) {
+      } catch {
         return {
           success: false,
           error: "Invalid routes JSON format",
@@ -255,7 +255,7 @@ export const router: Integration = createIntegration({
           if (typeof parsed !== "object" || parsed === null) {
             errors.routes = "Routes must be a JSON object";
           }
-        } catch (_e) {
+        } catch {
           errors.routes = "Invalid JSON format for routes";
         }
       }

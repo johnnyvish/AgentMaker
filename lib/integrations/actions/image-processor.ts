@@ -172,11 +172,11 @@ export const imageProcessor: Integration = createIntegration({
 
       const operation = config.operation as string;
       const imageUrl = config.image_url as string;
-      const imageBase64 = config.image_base64 as string; // Used for future base64 processing
+      const imageBase64 = config.image_base64 as string;
       const width = config.width as number;
       const height = config.height as number;
       const maintainAspectRatio =
-        (config.maintain_aspect_ratio as boolean) || true; // Used for future aspect ratio logic
+        (config.maintain_aspect_ratio as boolean) || true;
       const outputFormat = (config.output_format as string) || "jpeg";
       const quality = (config.quality as number) || 85;
       const ocrLanguage = (config.ocr_language as string) || "eng";
@@ -280,7 +280,11 @@ export const imageProcessor: Integration = createIntegration({
         }
       }
 
-      if (config.quality && (config.quality < 1 || config.quality > 100)) {
+      if (
+        config.quality &&
+        typeof config.quality === "number" &&
+        (config.quality < 1 || config.quality > 100)
+      ) {
         errors.quality = "Quality must be between 1 and 100";
       }
 

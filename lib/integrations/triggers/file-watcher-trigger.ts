@@ -75,7 +75,7 @@ export const fileWatcherTrigger: Integration = createIntegration({
               return "Ignore patterns must be a JSON array";
             }
             return null;
-          } catch (_e) {
+          } catch {
             return "Invalid JSON format";
           }
         },
@@ -100,7 +100,7 @@ export const fileWatcherTrigger: Integration = createIntegration({
       if (config.ignore_patterns) {
         try {
           ignorePatterns = JSON.parse(config.ignore_patterns as string);
-        } catch (e) {
+        } catch {
           return {
             success: false,
             error: "Invalid ignore patterns JSON format",
@@ -203,7 +203,7 @@ export const fileWatcherTrigger: Integration = createIntegration({
           filteredEvents = filteredEvents.filter((event) =>
             regex.test(event.file_name)
           );
-        } catch (_e) {
+        } catch {
           return {
             success: false,
             error: "Invalid file pattern regex",
@@ -284,7 +284,7 @@ export const fileWatcherTrigger: Integration = createIntegration({
       if (config.file_pattern) {
         try {
           new RegExp(config.file_pattern as string);
-        } catch (_e) {
+        } catch {
           errors.file_pattern = "Invalid file pattern regex";
         }
       }
@@ -302,7 +302,7 @@ export const fileWatcherTrigger: Integration = createIntegration({
           if (!Array.isArray(parsed)) {
             errors.ignore_patterns = "Ignore patterns must be a JSON array";
           }
-        } catch (_e) {
+        } catch {
           errors.ignore_patterns = "Invalid JSON format for ignore patterns";
         }
       }

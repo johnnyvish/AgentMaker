@@ -42,7 +42,7 @@ export const formTrigger: Integration = createIntegration({
           try {
             JSON.parse(value);
             return null;
-          } catch (_e) {
+          } catch {
             return "Invalid JSON format";
           }
         },
@@ -76,7 +76,7 @@ export const formTrigger: Integration = createIntegration({
       if (config.field_filters) {
         try {
           fieldFilters = JSON.parse(config.field_filters as string);
-        } catch (_e) {
+        } catch {
           return {
             success: false,
             error: "Invalid field filters JSON format",
@@ -133,7 +133,7 @@ export const formTrigger: Integration = createIntegration({
       // Apply field filters if specified
       if (Object.keys(fieldFilters).length > 0) {
         const filteredFields: Record<string, unknown> = {};
-        for (const [fieldName, _filterValue] of Object.entries(fieldFilters)) {
+        for (const [fieldName] of Object.entries(fieldFilters)) {
           if (fieldName in mockSubmission.fields) {
             filteredFields[fieldName] =
               mockSubmission.fields[
@@ -177,7 +177,7 @@ export const formTrigger: Integration = createIntegration({
           if (typeof parsed !== "object" || parsed === null) {
             errors.field_filters = "Field filters must be a JSON object";
           }
-        } catch (_e) {
+        } catch {
           errors.field_filters = "Invalid JSON format for field filters";
         }
       }

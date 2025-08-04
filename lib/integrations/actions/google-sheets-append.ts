@@ -60,7 +60,7 @@ export const googleSheetsAppend: Integration = createIntegration({
               return "Values must be a JSON array";
             }
             return null;
-          } catch (_e) {
+          } catch {
             return "Invalid JSON format";
           }
         },
@@ -120,7 +120,7 @@ export const googleSheetsAppend: Integration = createIntegration({
             metadata: { nodeType: "action", subtype: "google_sheets_append" },
           };
         }
-      } catch (_e) {
+      } catch {
         return {
           success: false,
           error: "Invalid JSON format for values",
@@ -185,7 +185,7 @@ export const googleSheetsAppend: Integration = createIntegration({
           if (!Array.isArray(parsed)) {
             errors.values = "Values must be a JSON array";
           }
-        } catch (_e) {
+        } catch {
           errors.values = "Invalid JSON format for values";
         }
       }

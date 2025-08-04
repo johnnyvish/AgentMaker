@@ -65,7 +65,7 @@ export const databaseInsert: Integration = createIntegration({
               return "Data must be a JSON object";
             }
             return null;
-          } catch (_e) {
+          } catch {
             return "Invalid JSON format";
           }
         },
@@ -130,7 +130,7 @@ export const databaseInsert: Integration = createIntegration({
             metadata: { nodeType: "action", subtype: "database_insert" },
           };
         }
-      } catch (_e) {
+      } catch {
         return {
           success: false,
           error: "Invalid JSON format for data",
@@ -211,7 +211,7 @@ export const databaseInsert: Integration = createIntegration({
           ) {
             errors.data = "Data must be a JSON object";
           }
-        } catch (_e) {
+        } catch {
           errors.data = "Invalid JSON format for data";
         }
       }

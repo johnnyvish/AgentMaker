@@ -230,6 +230,7 @@ export const csvParser: Integration = createIntegration({
             : null,
           filterApplied: !!config.filter_condition,
           outputFormat,
+          output,
           timestamp,
         },
         metadata: { nodeType: "action", subtype: "csv_parser" },
