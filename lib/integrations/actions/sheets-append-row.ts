@@ -57,17 +57,21 @@ export const sheetsAppendRow: Integration = createIntegration({
       await new Promise((resolve) => setTimeout(resolve, 1500));
       const timestamp = new Date().toISOString();
       
+      const spreadsheetId = config.spreadsheet_id as string;
+      const range = config.range as string;
+      const sheetName = range.split('!')[0];
+      
       return {
         success: true,
         data: {
-          spreadsheetId: config.spreadsheet_id as string,
-          range: config.range as string,
-          updatedRange: `${config.range.split('!')[0]}!A123:D123`,
+          spreadsheetId,
+          range,
+          updatedRange: `${sheetName}!A123:D123`,
           updatedRows: 1,
           updatedColumns: 4,
           updatedCells: 4,
           timestamp,
-          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${config.spreadsheet_id}`,
+          spreadsheetUrl: `https://docs.google.com/spreadsheets/d/${spreadsheetId}`,
         },
         metadata: { nodeType: "action", subtype: "sheets_append_row" },
       };
